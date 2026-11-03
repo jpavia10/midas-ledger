@@ -1,6 +1,5 @@
-*
-!index.html
-!manifest.json
-!icon.png
-!README.md
-!.gitignore
+.DS_Store
+*.log
+node_modules
+.env
+.env.*

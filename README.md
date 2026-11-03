@@ -6,6 +6,8 @@ https://jpavia10.github.io/midas-ledger/
 
 Balances are AES-256-GCM. The key is PBKDF2-SHA256, 600k iterations, and it never leaves the device. Remembering on this device stores the raw AES key in `localStorage` under `midasKey`, tied to the salt. A new salt asks for the password again. No password and no plaintext ledger are stored in this repo.
 
+Open the book, then click an account, a headline figure, a written page, or a dock tile. The glass grows out of that item and the field leans into its shape. Back reverses the same motion.
+
 Back to the desk: https://jpavia10.github.io/prometheus-hub/
 
 ## Particles

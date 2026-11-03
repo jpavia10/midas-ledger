@@ -2,20 +2,10 @@
    localStorage "midasKey" is { salt, k } where k is the raw AES key (base64).
    A new salt asks for the password again. The password is never stored. */
 
+import { bindDetail, ORDER, setBook } from "./detail.js";
+
 const KEY_NAME = "midasKey";
 const WRONG = "That password didn't work. Try again 🙂";
-
-const ORDER = {
-  L8: [1, "Phase 1"],
-  L6: [1, "Phase 1"],
-  L10: [2, "Phase 2"],
-  L4: [3, "Phase 3"],
-  L5: [3, "Phase 3"],
-  L9: [4, "0% autopay"],
-  L7: [5, "Cleared"],
-  L11: [5, "Cleared"],
-  L13: [6, "Hold"]
-};
 
 export function b64(s) {
   return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
@@ -74,6 +64,10 @@ function escAttr(s) {
   return esc(s).replace(/"/g, "&quot;");
 }
 
+function opener(key) {
+  return `data-open="${escAttr(key)}" tabindex="0" role="button"`;
+}
+
 function tags(marks) {
   return (marks || []).map((t) => {
     const cls = t === "STALE?" ? "st" : t === "NEED YOU" ? "nd" : t === "HOLD" ? "hold" : t === "VERIFIED" ? "ok" : "";
@@ -129,7 +123,7 @@ function cardRow(c, extra = "") {
   const from = c.source != "card" ? "· from " + esc(c.source) : "";
   const prev = c.prev != null ? " · card said " + money(c.prev) : "";
   const lines = c.balance == null || bad ? `<p class="note">${(c.lines || []).map(esc).join("<br>")}</p>` : "";
-  return `<article class="card ${cls}">
+  return `<article class="card opener ${cls}" ${opener("card:" + c.id)}>
     <div class="row">
       <h3>${esc(c.name)} <span class="id">${esc(c.id)}</span>${extra}</h3>
       <p class="figure">${figure}</p>
@@ -144,7 +138,7 @@ function sheet(id, shift, side, kicker, title, body) {
   return `<section class="sheet${side ? " side-right" : ""}" id="${id}" data-shift="${shift}" data-nav>
     <div class="sheet-inner">
       <p class="kicker">${kicker}</p>
-      <h2>${title}</h2>
+      <h2><button type="button" class="sheet-title" data-open="${escAttr(id === "cards" ? "group:cards" : id === "cash" ? "group:cash" : id === "assets" ? "group:assets" : id === "loans" ? "group:loans" : "group:attention")}">${title}</button></h2>
       <div class="stack">${body}</div>
     </div>
   </section>`;
@@ -169,13 +163,13 @@ export function ledgerHtml(d) {
     <div class="hero-copy overview-copy">
       <p class="kicker">Finance wing</p>
       <p class="lede">Built ${esc(d.built_pt)} · ledger: ${when}</p>
-      <article class="card metric">
+      <article class="card metric opener" ${opener("metric:stress")}>
         ${gauge(h.stress)}
         ${spark(d.history)}
         <p class="meta">${d.history.length} points · dashed line = goal 400</p>
       </article>
       <div class="pair">
-        <article class="card metric">
+        <article class="card metric opener" ${opener("metric:banked")}>
           <div class="row">
             <div>
               <p class="kicker">Banked liquid</p>
@@ -189,7 +183,7 @@ export function ledgerHtml(d) {
           <div class="bar" role="img" aria-label="${escAttr(floorNote)}"><i style="width:${pct}%;background:${bar}"></i></div>
           <p class="meta">${floorNote}</p>
         </article>
-        <article class="card metric">
+        <article class="card metric opener" ${opener("metric:revolving")}>
           <p class="kicker">Revolving total</p>
           <p class="figure debt">${money(h.revolving)}</p>
         </article>
@@ -203,7 +197,7 @@ export function ledgerHtml(d) {
     false,
     "Needs you / stale",
     "Attention",
-    attention.map((c) => `<article class="card ${c.marks.includes("NEED YOU") ? "alert" : "warnb"}">
+    attention.map((c) => `<article class="card opener ${c.marks.includes("NEED YOU") ? "alert" : "warnb"}" ${opener("card:" + c.id)}>
       <h3>${esc(c.name)} ${tags(c.marks)}</h3>
       <p class="meta">${esc((c.lines && c.lines[0]) || c.status || "")}</p>
     </article>`).join("")
@@ -248,9 +242,12 @@ export function ledgerHtml(d) {
   const book = `<section class="sheet" id="book" data-shift="1.05" data-nav>
     <div class="sheet-inner">
       <p class="kicker">Written pages</p>
-      <h2 id="book-title" tabindex="-1">Full ledger</h2>
-      ${(d.sections || []).map((s) => `<details class="fold"><summary>${esc(s.title)}</summary><pre>${esc(s.body)}</pre></details>`).join("")}
-      <details class="fold"><summary>Recent log</summary><pre>${(d.log || []).map(esc).join("\n\n")}</pre></details>
+      <h2 id="book-title" tabindex="-1"><button type="button" class="sheet-title" data-open="group:book">Full ledger</button></h2>
+      ${(d.sections || []).map((s, i) => {
+        const excerpt = String(s.body || "").split("\n")[0];
+        return `<button type="button" class="fold fold-btn" data-open="section:${i}"><span class="fold-title">${esc(s.title)}</span>${excerpt ? `<span class="fold-excerpt">${esc(excerpt)}</span>` : ""}<span class="go" aria-hidden="true">→</span></button>`;
+      }).join("")}
+      <button type="button" class="fold fold-btn" data-open="group:log"><span class="fold-title">Recent log</span><span class="go" aria-hidden="true">→</span></button>
       <button type="button" class="quiet-btn" data-lock>Lock &amp; forget device</button>
     </div>
   </section>`;
@@ -279,7 +276,8 @@ export function bindNav() {
   panels.forEach((panel) => navObserver.observe(panel));
 }
 
-function paintHtml(html) {
+function paintHtml(html, data) {
+  setBook(data);
   const lock = document.getElementById("lock");
   const app = document.getElementById("app");
   app.innerHTML = html;
@@ -295,12 +293,18 @@ function paintHtml(html) {
   if (head) head.focus({ preventScroll: true });
 }
 
+export function presentBook(data) {
+  paintHtml(ledgerHtml(data), data);
+}
+
 export function mountLedger(vault) {
   const form = document.getElementById("f");
   const err = document.getElementById("err");
   const button = form.querySelector("button");
   const input = document.getElementById("pw");
   const remember = document.getElementById("rem");
+
+  bindDetail();
 
   document.body.addEventListener("click", (event) => {
     const hit = event.target.closest("[data-lock]");
@@ -341,7 +345,7 @@ export function mountLedger(vault) {
         localStorage.setItem(KEY_NAME, JSON.stringify(record));
       } catch (e) { /* still open the book */ }
     }
-    paintHtml(html);
+    paintHtml(html, opened.data);
   });
 
   if (!vaultOk(vault)) {
@@ -374,7 +378,7 @@ async function restore(vault, err) {
     return;
   }
   try {
-    paintHtml(ledgerHtml(data));
+    paintHtml(ledgerHtml(data), data);
   } catch (e) {
     document.documentElement.classList.remove("restoring");
     err.textContent = "The book opened, but this page couldn't draw it.";

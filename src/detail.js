@@ -1,0 +1,506 @@
+/* Detail views for the decrypted book. Only fields the book already carries. */
+import { focusField, releaseField } from "./particles.js";
+
+export const ORDER = {
+  L8: [1, "Phase 1"],
+  L6: [1, "Phase 1"],
+  L10: [2, "Phase 2"],
+  L4: [3, "Phase 3"],
+  L5: [3, "Phase 3"],
+  L9: [4, "0% autopay"],
+  L7: [5, "Cleared"],
+  L11: [5, "Cleared"],
+  L13: [6, "Hold"]
+};
+
+const SECTION_LABEL = {
+  "Cards (detail)": "Cards",
+  "Cash": "Cash",
+  "Assets beyond cash": "Assets",
+  "Loans": "Loans"
+};
+
+const CARD_KNOWN = new Set(["section", "id", "name", "balance", "marks", "asof", "source", "prev", "lines", "status"]);
+const HEAD_KNOWN = new Set(["stress", "banked", "floor", "revolving"]);
+
+const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+const OPEN_MS = 920;
+const CLOSE_MS = 760;
+
+let book = null;
+let detailKey = null;
+let sourceEl = null;
+let closing = false;
+let bound = false;
+let suppressClick = false;
+let closeTimer = 0;
+let epoch = 0;
+
+function money(n) {
+  return n == null ? "—" : "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+function escAttr(s) {
+  return esc(s).replace(/"/g, "&quot;");
+}
+
+function reduceMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function labelFor(section) {
+  return SECTION_LABEL[section] || section || "Account";
+}
+
+function fact(label, value) {
+  if (value == null || value === "") return "";
+  return `<div class="fact"><span>${esc(label)}</span><b>${esc(value)}</b></div>`;
+}
+
+function extraFacts(obj, known) {
+  if (!obj || typeof obj !== "object") return "";
+  return Object.keys(obj).map((key) => {
+    if (known.has(key)) return "";
+    const value = obj[key];
+    if (value == null || typeof value === "object") return "";
+    return fact(key, String(value));
+  }).join("");
+}
+
+function tags(marks) {
+  if (!marks || !marks.length) return "";
+  return `<div class="tags">${marks.map((t) => {
+    const cls = t === "STALE?" ? "st" : t === "NEED YOU" ? "nd" : t === "HOLD" ? "hold" : t === "VERIFIED" ? "ok" : "";
+    return `<span class="tag ${cls}">${esc(t)}</span>`;
+  }).join("")}</div>`;
+}
+
+function notes(lines) {
+  if (!lines || !lines.length) return "";
+  return `<div class="notes"><p class="kicker">Notes</p>${lines.map((line) => `<p>${esc(line)}</p>`).join("")}</div>`;
+}
+
+function cardRoster(c) {
+  const phase = ORDER[c.id] ? ORDER[c.id][1] : "";
+  const figure = c.balance == null ? "see note" : money(c.balance);
+  return `<button type="button" class="roster" data-open="card:${escAttr(c.id)}">
+    <span><b>${esc(c.name)}</b> <span class="id">${esc(c.id)}</span>${phase ? ` <span class="phase">${esc(phase)}</span>` : ""}</span>
+    <span class="figure">${figure}</span>
+  </button>`;
+}
+
+function sortCards(list) {
+  return list.slice().sort((a, b) => (ORDER[a.id]?.[0] ?? 9) - (ORDER[b.id]?.[0] ?? 9));
+}
+
+function cardsIn(bookData, section) {
+  return (bookData.cards || []).filter((c) => c.section === section);
+}
+
+function floorNote(h) {
+  const pct = Math.min(100, (h.banked || 0) / (h.floor || 3000) * 100);
+  return pct >= 100 ? "Above floor by " + money(h.banked - h.floor) : "Short " + money(h.floor - h.banked);
+}
+
+function cardDetail(bookData, id) {
+  const card = (bookData.cards || []).find((c) => c.id === id);
+  if (!card) return "";
+  const phase = ORDER[card.id] ? ORDER[card.id][1] : "";
+  const siblings = cardsIn(bookData, card.section).filter((c) => c.id !== card.id);
+  const siblingLabel = "Also in " + labelFor(card.section);
+  return `<p class="kicker">${esc(labelFor(card.section))}</p>
+    <h2 id="detail-title">${esc(card.name)}</h2>
+    <p class="figure${card.section === "Loans" ? " debt" : ""}">${card.balance == null ? '<span class="pending">see note</span>' : money(card.balance)}</p>
+    ${tags(card.marks)}
+    <div class="facts">
+      ${fact("Id", card.id)}
+      ${fact("Section", card.section)}
+      ${fact("As of", card.asof)}
+      ${fact("Source", card.source)}
+      ${card.prev != null ? fact("Card said", money(card.prev)) : ""}
+      ${fact("Status", card.status)}
+      ${fact("Payoff", phase)}
+      ${extraFacts(card, CARD_KNOWN)}
+    </div>
+    ${notes(card.lines)}
+    ${siblings.length ? `<div class="related"><p class="kicker">${esc(siblingLabel)}</p><div class="roster-list">${siblings.map(cardRoster).join("")}</div></div>` : ""}`;
+}
+
+function metricDetail(bookData, which) {
+  const h = bookData.headline || {};
+  if (which === "stress") {
+    const history = bookData.history || [];
+    return `<p class="kicker">Stress</p>
+      <h2 id="detail-title">${h.stress ?? "?"}</h2>
+      <p class="meta">/1000 · lower better · goal &lt;400</p>
+      <div class="facts">
+        ${fact("Score", h.stress == null ? "" : String(h.stress))}
+        ${fact("Goal", "<400")}
+        ${fact("Points", String(history.length))}
+        ${fact("Built", bookData.built_pt)}
+        ${fact("Ledger", bookData.ledger_update || bookData.ledger_revised || "")}
+        ${extraFacts(h, HEAD_KNOWN)}
+      </div>
+      ${history.length ? `<div class="related"><p class="kicker">History</p><div class="roster-list">${history.map((point, i) => `<button type="button" class="roster" data-open="history:${i}">
+        <span>${esc(point.when)}</span><span class="figure">${esc(point.score)}</span>
+      </button>`).join("")}</div></div>` : ""}`;
+  }
+  if (which === "banked") {
+    return `<p class="kicker">Banked liquid</p>
+      <h2 id="detail-title">${money(h.banked)}</h2>
+      <p class="meta">${esc(floorNote(h))}</p>
+      <div class="facts">
+        ${fact("Banked", money(h.banked))}
+        ${fact("Floor", money(h.floor))}
+        ${fact("Gap", floorNote(h))}
+        ${fact("Built", bookData.built_pt)}
+        ${fact("Ledger", bookData.ledger_update || bookData.ledger_revised || "")}
+        ${extraFacts(h, HEAD_KNOWN)}
+      </div>`;
+  }
+  if (which === "revolving") {
+    return `<p class="kicker">Revolving total</p>
+      <h2 id="detail-title" class="debt">${money(h.revolving)}</h2>
+      <div class="facts">
+        ${fact("Revolving", money(h.revolving))}
+        ${fact("Built", bookData.built_pt)}
+        ${fact("Ledger", bookData.ledger_update || bookData.ledger_revised || "")}
+        ${extraFacts(h, HEAD_KNOWN)}
+      </div>
+      ${sortCards(cardsIn(bookData, "Cards (detail)")).length ? `<div class="related"><p class="kicker">Card accounts</p><div class="roster-list">${sortCards(cardsIn(bookData, "Cards (detail)")).map(cardRoster).join("")}</div></div>` : ""}`;
+  }
+  return "";
+}
+
+function historyDetail(bookData, index) {
+  const point = (bookData.history || [])[index];
+  if (!point) return "";
+  const known = new Set(["when", "score"]);
+  return `<p class="kicker">Stress history</p>
+    <h2 id="detail-title">${esc(point.when)}</h2>
+    <p class="figure">${esc(point.score)}</p>
+    <div class="facts">
+      ${fact("When", point.when)}
+      ${fact("Score", point.score == null ? "" : String(point.score))}
+      ${fact("Goal", "<400")}
+      ${extraFacts(point, known)}
+    </div>`;
+}
+
+function sectionDetail(bookData, index) {
+  const section = (bookData.sections || [])[index];
+  if (!section) return "";
+  const others = (bookData.sections || []).map((s, i) => i === index ? "" : `<button type="button" class="roster" data-open="section:${i}"><span>${esc(s.title)}</span><span class="go" aria-hidden="true">→</span></button>`).join("");
+  return `<p class="kicker">Full ledger</p>
+    <h2 id="detail-title">${esc(section.title)}</h2>
+    <pre class="detail-pre">${esc(section.body || "")}</pre>
+    ${extraFacts(section, new Set(["title", "body"]))}
+    ${others ? `<div class="related"><p class="kicker">Other pages</p><div class="roster-list">${others}</div></div>` : ""}`;
+}
+
+function logDetail(bookData, index) {
+  const log = bookData.log || [];
+  const line = log[index];
+  if (line == null) return "";
+  const others = log.map((entry, i) => i === index ? "" : `<button type="button" class="roster" data-open="log:${i}"><span>${esc(entry)}</span></button>`).join("");
+  return `<p class="kicker">Recent log</p>
+    <h2 id="detail-title">Entry ${index + 1}</h2>
+    <pre class="detail-pre">${esc(line)}</pre>
+    ${others ? `<div class="related"><p class="kicker">Other entries</p><div class="roster-list">${others}</div></div>` : ""}`;
+}
+
+function groupDetail(bookData, name) {
+  if (name === "overview") {
+    const h = bookData.headline || {};
+    return `<p class="kicker">Finance wing</p>
+      <h2 id="detail-title">Overview</h2>
+      <p class="meta">Built ${esc(bookData.built_pt || "")} · ledger: ${esc(bookData.ledger_update || bookData.ledger_revised || "")}</p>
+      <div class="roster-list">
+        <button type="button" class="roster" data-open="metric:stress"><span>Stress</span><span class="figure">${esc(h.stress ?? "—")}</span></button>
+        <button type="button" class="roster" data-open="metric:banked"><span>Banked liquid</span><span class="figure">${money(h.banked)}</span></button>
+        <button type="button" class="roster" data-open="metric:revolving"><span>Revolving total</span><span class="figure debt">${money(h.revolving)}</span></button>
+      </div>`;
+  }
+  if (name === "cards") {
+    const list = sortCards(cardsIn(bookData, "Cards (detail)"));
+    return `<p class="kicker">Payoff order</p><h2 id="detail-title">Cards</h2><div class="roster-list">${list.map(cardRoster).join("")}</div>`;
+  }
+  if (name === "cash") {
+    return `<p class="kicker">On hand</p><h2 id="detail-title">Cash</h2><div class="roster-list">${cardsIn(bookData, "Cash").map(cardRoster).join("")}</div>`;
+  }
+  if (name === "assets") {
+    return `<p class="kicker">Beyond cash</p><h2 id="detail-title">Assets</h2><div class="roster-list">${cardsIn(bookData, "Assets beyond cash").map(cardRoster).join("")}</div>`;
+  }
+  if (name === "loans") {
+    return `<p class="kicker">Owed</p><h2 id="detail-title">Loans</h2><div class="roster-list">${cardsIn(bookData, "Loans").map(cardRoster).join("")}</div>`;
+  }
+  if (name === "attention") {
+    const list = (bookData.cards || []).filter((c) => (c.marks || []).includes("NEED YOU") || (c.marks || []).includes("STALE?"));
+    return `<p class="kicker">Needs you / stale</p><h2 id="detail-title">Attention</h2><div class="roster-list">${list.map(cardRoster).join("")}</div>`;
+  }
+  if (name === "book") {
+    const pages = (bookData.sections || []).map((s, i) => `<button type="button" class="roster" data-open="section:${i}"><span>${esc(s.title)}</span><span class="go" aria-hidden="true">→</span></button>`).join("");
+    const logs = (bookData.log || []).map((entry, i) => `<button type="button" class="roster" data-open="log:${i}"><span>${esc(entry)}</span></button>`).join("");
+    return `<p class="kicker">Written pages</p><h2 id="detail-title">Full ledger</h2>
+      ${pages ? `<div class="roster-list">${pages}</div>` : ""}
+      ${logs ? `<div class="related"><p class="kicker">Recent log</p><div class="roster-list">${logs}</div></div>` : ""}`;
+  }
+  if (name === "log") {
+    const logs = (bookData.log || []).map((entry, i) => `<button type="button" class="roster" data-open="log:${i}"><span>${esc(entry)}</span></button>`).join("");
+    return `<p class="kicker">Recent log</p><h2 id="detail-title">Log</h2><div class="roster-list">${logs}</div>`;
+  }
+  return "";
+}
+
+export function detailHtml(bookData, key) {
+  if (!bookData || !key) return "";
+  if (key.startsWith("card:")) return cardDetail(bookData, key.slice(5));
+  if (key.startsWith("metric:")) return metricDetail(bookData, key.slice(7));
+  if (key.startsWith("history:")) return historyDetail(bookData, Number(key.slice(8)));
+  if (key.startsWith("section:")) return sectionDetail(bookData, Number(key.slice(8)));
+  if (key.startsWith("log:")) return logDetail(bookData, Number(key.slice(4)));
+  if (key.startsWith("group:")) return groupDetail(bookData, key.slice(6));
+  return "";
+}
+
+export function focusSpec(bookData, key) {
+  const base = { shift: 0, pull: 0.16, scale: 1.18, z: 3.25 };
+  if (!key) return { ...base, scroll: 0.04 };
+  if (key.startsWith("card:")) {
+    const card = (bookData?.cards || []).find((c) => c.id === key.slice(5));
+    const section = card && card.section;
+    if (section === "Cash") return { ...base, scroll: 0.36, scale: 1.22 };
+    if (section === "Loans") return { ...base, scroll: 0.98, scale: 1.2 };
+    if (section === "Assets beyond cash") return { ...base, scroll: 0.52, scale: 1.16 };
+    if (section === "Cards (detail)") return { ...base, scroll: 0.66, scale: 1.16 };
+    return { ...base, scroll: 0.22 };
+  }
+  if (key === "metric:banked" || key === "group:cash") return { ...base, scroll: 0.36, scale: 1.22 };
+  if (key === "metric:revolving" || key === "group:loans") return { ...base, scroll: 0.98, scale: 1.2 };
+  if (key === "metric:stress" || key === "group:overview") return { ...base, scroll: 0.04, scale: 1.14 };
+  if (key === "group:assets") return { ...base, scroll: 0.52 };
+  if (key.startsWith("section:") || key.startsWith("log:") || key === "group:book" || key === "group:log") return { ...base, scroll: 0.74 };
+  if (key === "group:cards" || key === "group:attention") return { ...base, scroll: 0.66 };
+  if (key.startsWith("history:")) return { ...base, scroll: 0.08 };
+  return { ...base, scroll: 0.2 };
+}
+
+export function setBook(data) {
+  book = data;
+}
+
+function shell(inner) {
+  return `<div class="detail-scrim" data-close></div>
+    <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+      <button type="button" class="detail-back" data-close><span aria-hidden="true">←</span> Back</button>
+      <div class="detail-body">${inner}</div>
+    </div>`;
+}
+
+function layer() {
+  return document.getElementById("detail");
+}
+
+function finishClose(gen) {
+  if (gen !== epoch) return;
+  epoch += 1;
+  clearTimeout(closeTimer);
+  const root = layer();
+  if (root) {
+    root.hidden = true;
+    root.innerHTML = "";
+  }
+  document.body.classList.remove("is-detail");
+  detailKey = null;
+  sourceEl = null;
+  closing = false;
+  releaseField();
+}
+
+function playOpen(panel, from) {
+  if (reduceMotion()) return;
+  const last = panel.getBoundingClientRect();
+  const dx = from.left - last.left;
+  const dy = from.top - last.top;
+  const sx = Math.max(0.18, from.width / Math.max(1, last.width));
+  const sy = Math.max(0.12, from.height / Math.max(1, last.height));
+  panel.animate([
+    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, transformOrigin: "top left" },
+    { transform: "translate(0, 0) scale(1)", transformOrigin: "top left" }
+  ], { duration: OPEN_MS, easing: EASE, fill: "both" });
+  const scrim = layer().querySelector(".detail-scrim");
+  if (scrim) scrim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 460, easing: "ease-out", fill: "both" });
+  const body = panel.querySelector(".detail-body");
+  if (body) {
+    body.animate([
+      { opacity: 0, transform: "translateY(18px)" },
+      { opacity: 1, transform: "translateY(0)" }
+    ], { duration: 520, easing: EASE, delay: 160, fill: "both" });
+  }
+}
+
+function bindDrag(panel) {
+  let startY = 0;
+  let startX = 0;
+  let tracking = false;
+  let dragging = false;
+  panel.addEventListener("pointerdown", (event) => {
+    if (panel.scrollTop > 4) return;
+    if (event.button != null && event.button !== 0) return;
+    startY = event.clientY;
+    startX = event.clientX;
+    tracking = true;
+    dragging = false;
+  });
+  panel.addEventListener("pointermove", (event) => {
+    if (!tracking) return;
+    const dy = event.clientY - startY;
+    const dx = event.clientX - startX;
+    if (dy > 12 && dy > Math.abs(dx) * 1.2) {
+      dragging = true;
+      panel.style.transform = `translateY(${Math.min(dy * 0.65, 160)}px)`;
+    }
+  });
+  const end = (event) => {
+    if (!tracking) return;
+    const dy = event.clientY - startY;
+    tracking = false;
+    if (dragging && dy > 96) {
+      suppressClick = true;
+      panel.style.transform = "";
+      closeDetail();
+    } else {
+      panel.style.transform = "";
+    }
+    dragging = false;
+  };
+  panel.addEventListener("pointerup", end);
+  panel.addEventListener("pointercancel", end);
+}
+
+export function openDetail(key, fromEl) {
+  if (!book) return;
+  const inner = detailHtml(book, key);
+  if (!inner) return;
+  const root = layer();
+  if (!root) return;
+  epoch += 1;
+  clearTimeout(closeTimer);
+  closing = false;
+  if (detailKey && fromEl && fromEl.closest("#detail")) {
+    swapDetail(key, inner);
+    return;
+  }
+  if (detailKey && !closing) finishClose();
+  const from = fromEl ? fromEl.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 48, height: 48 };
+  root.hidden = false;
+  root.innerHTML = shell(inner);
+  const panel = root.querySelector(".detail-panel");
+  document.body.classList.add("is-detail");
+  focusField(focusSpec(book, key));
+  detailKey = key;
+  sourceEl = fromEl || null;
+  bindDrag(panel);
+  requestAnimationFrame(() => requestAnimationFrame(() => playOpen(panel, from)));
+  const back = root.querySelector(".detail-back");
+  if (back) back.focus({ preventScroll: true });
+}
+
+function swapDetail(key, inner) {
+  const root = layer();
+  const body = root.querySelector(".detail-body");
+  if (!body) return;
+  detailKey = key;
+  focusField(focusSpec(book, key));
+  if (reduceMotion()) {
+    body.innerHTML = inner;
+    return;
+  }
+  const out = body.animate([
+    { opacity: 1, transform: "translate3d(0, 0, 0)" },
+    { opacity: 0, transform: "translate3d(0, 14px, 0) scale(0.985)" }
+  ], { duration: 180, easing: "ease-in", fill: "forwards" });
+  out.onfinish = () => {
+    body.innerHTML = inner;
+    body.animate([
+      { opacity: 0, transform: "translate3d(0, 22px, 0)" },
+      { opacity: 1, transform: "translate3d(0, 0, 0)" }
+    ], { duration: 420, easing: EASE, fill: "both" });
+  };
+}
+
+export function closeDetail() {
+  if (!detailKey || closing) return;
+  const root = layer();
+  const panel = root && root.querySelector(".detail-panel");
+  const gen = epoch;
+  releaseField();
+  if (!panel || reduceMotion() || !sourceEl || !sourceEl.isConnected) {
+    finishClose(gen);
+    return;
+  }
+  closing = true;
+  panel.getAnimations().forEach((anim) => anim.cancel());
+  panel.style.transform = "";
+  const origin = panel.getBoundingClientRect();
+  const back = sourceEl.getBoundingClientRect();
+  const dx = back.left - origin.left;
+  const dy = back.top - origin.top;
+  const sx = Math.max(0.18, back.width / Math.max(1, origin.width));
+  const sy = Math.max(0.12, back.height / Math.max(1, origin.height));
+  const anim = panel.animate([
+    { transform: "translate(0, 0) scale(1)", transformOrigin: "top left" },
+    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, transformOrigin: "top left" }
+  ], { duration: CLOSE_MS, easing: EASE, fill: "both" });
+  const scrim = root.querySelector(".detail-scrim");
+  if (scrim) scrim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 420, easing: "ease-in", fill: "both" });
+  const done = () => finishClose(gen);
+  closeTimer = setTimeout(done, CLOSE_MS + 80);
+  anim.onfinish = done;
+}
+
+export function bindDetail() {
+  if (bound || typeof document === "undefined") return;
+  bound = true;
+  document.addEventListener("click", (event) => {
+    if (suppressClick) {
+      suppressClick = false;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    const closer = event.target.closest("[data-close]");
+    if (closer && closer.closest("#detail")) {
+      event.preventDefault();
+      closeDetail();
+      return;
+    }
+    const opener = event.target.closest("[data-open]");
+    if (opener && book) {
+      event.preventDefault();
+      openDetail(opener.getAttribute("data-open"), opener);
+      return;
+    }
+    const tile = event.target.closest("[data-detail]");
+    if (tile && book && document.body.classList.contains("is-open")) {
+      event.preventDefault();
+      openDetail(tile.getAttribute("data-detail"), tile);
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && detailKey) {
+      event.preventDefault();
+      closeDetail();
+      return;
+    }
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const opener = event.target.closest("[data-open]");
+    if (!opener || !book || opener.closest("button, a")) return;
+    event.preventDefault();
+    openDetail(opener.getAttribute("data-open"), opener);
+  });
+}

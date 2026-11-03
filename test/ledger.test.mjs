@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { detailHtml, focusSpec } from "../src/detail.js";
 import { b64, dec, ledgerHtml, openVault, rememberedRecord } from "../src/ledger.js";
 
 function b64e(bytes) {
@@ -58,10 +59,40 @@ test("ledger html keeps the book and escapes text", () => {
   assert.match(html, /HOLD · never sell/);
   assert.match(html, /Notes &lt;x&gt;/);
   assert.match(html, /hello &amp; bye/);
-  assert.match(html, /line &lt;1&gt;/);
+  assert.match(html, /data-open="section:0"/);
+  assert.match(html, /data-open="metric:banked"/);
   assert.match(html, /Lock &amp; forget device/);
   assert.match(html, /Jan &quot;a&quot;/);
   assert.match(html, /Built 2026-10-19 15:54 PT/);
+});
+
+test("detail view uses only the book's own fields", () => {
+  const data = fixture();
+  const card = detailHtml(data, "card:L8");
+  assert.match(card, /Alpha/);
+  assert.match(card, /see note/);
+  assert.match(card, /Phase 1/);
+  assert.match(card, /call them/);
+  assert.match(card, /Card said/);
+  assert.match(card, /\$5\.00/);
+  assert.match(card, /NEED YOU/);
+  assert.match(card, /Beta &lt;card&gt;/);
+  assert.doesNotMatch(card, /Checking/);
+  assert.doesNotMatch(card, /\$100\.50/);
+  const page = detailHtml(data, "section:0");
+  assert.match(page, /Notes &lt;x&gt;/);
+  assert.match(page, /hello &amp; bye/);
+  const log = detailHtml(data, "log:0");
+  assert.match(log, /line &lt;1&gt;/);
+  assert.match(log, /line 2/);
+  assert.match(detailHtml(data, "metric:banked"), /Above floor by \$1,200\.00/);
+  assert.match(detailHtml(fixture(1000), "metric:banked"), /Short \$2,000\.00/);
+  const cards = detailHtml(data, "group:cards");
+  assert.ok(cards.indexOf("Alpha") < cards.indexOf("Beta"));
+  assert.equal(detailHtml(data, "card:missing"), "");
+  assert.ok(focusSpec(data, "card:C1").scroll > 0.3 && focusSpec(data, "card:C1").scroll < 0.45);
+  assert.ok(focusSpec(data, "metric:revolving").scroll > 0.9);
+  assert.ok(focusSpec(data, "group:cards").scroll > 0.6 && focusSpec(data, "group:cards").scroll < 0.75);
 });
 
 test("short of the floor uses the warm bar", () => {

@@ -13,6 +13,19 @@ import {
 
 const SIZE = 192;
 
+let fieldFocus = null;
+let holdPointer = false;
+
+export function focusField(spec) {
+  fieldFocus = spec || null;
+  holdPointer = !!spec;
+}
+
+export function releaseField() {
+  fieldFocus = null;
+  holdPointer = false;
+}
+
 function gauss() {
   let u = 0;
   let v = 0;
@@ -209,6 +222,7 @@ export function startField(canvas) {
   const clock = new THREE.Clock();
 
   function onPointer(event) {
+    if (holdPointer) return;
     const x = event.clientX / Math.max(1, window.innerWidth);
     const y = event.clientY / Math.max(1, window.innerHeight);
     pointerTarget.x = x * 2 - 1;
@@ -246,6 +260,9 @@ export function startField(canvas) {
   }
 
   let running = true;
+  let pullCurrent = reduce ? 0 : 0.34;
+  let scaleCurrent = 1;
+  let zCurrent = 4.35;
   document.addEventListener("visibilitychange", function () {
     running = !document.hidden;
     if (running) clock.getDelta();
@@ -257,15 +274,29 @@ export function startField(canvas) {
 
     const delta = Math.min(0.05, clock.getDelta());
     const elapsed = reduce ? 0 : clock.elapsedTime;
+    const spec = fieldFocus;
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-    const scrollTarget = window.scrollY / maxScroll;
-    const follow = reduce ? 1 : 1 - Math.pow(0.001, delta);
+    const scrollTarget = spec ? spec.scroll : window.scrollY / maxScroll;
+    const follow = reduce ? 1 : 1 - Math.pow(0.0012, delta);
+    if (holdPointer) {
+      pointerTarget.x *= 0.86;
+      pointerTarget.y *= 0.86;
+    }
     scrollCurrent += (scrollTarget - scrollCurrent) * (reduce ? 1 : follow);
     pointer.x += (pointerTarget.x - pointer.x) * (reduce ? 1 : 0.08);
     pointer.y += (pointerTarget.y - pointer.y) * (reduce ? 1 : 0.08);
 
+    const pullTarget = spec ? (spec.pull == null ? 0.16 : spec.pull) : (reduce ? 0 : 0.34);
+    const scaleTarget = spec ? (spec.scale == null ? 1.18 : spec.scale) : 1;
+    const zTarget = spec ? (spec.z == null ? 3.25 : spec.z) : 4.35;
+    const ease = reduce ? 1 : 0.07;
+    pullCurrent += (pullTarget - pullCurrent) * (reduce ? 1 : ease);
+    scaleCurrent += (scaleTarget - scaleCurrent) * (reduce ? 1 : ease);
+    zCurrent += (zTarget - zCurrent) * (reduce ? 1 : 0.055);
+
     simUniforms.uTime.value = elapsed;
     simUniforms.uScroll.value = scrollCurrent;
+    simUniforms.uPull.value = pullCurrent;
     simUniforms.uPointer.value.set(pointer.x, pointer.y);
     starUniforms.uTime.value = elapsed;
 
@@ -277,16 +308,18 @@ export function startField(canvas) {
     renderer.setRenderTarget(null);
     renderer.outputColorSpace = previous;
 
-    const shiftTarget = sectionShift();
+    const shiftTarget = spec ? (spec.shift == null ? 0 : spec.shift) : sectionShift();
     shiftCurrent += (shiftTarget - shiftCurrent) * (reduce ? 1 : 0.06);
     points.position.x = shiftCurrent;
+    points.scale.setScalar(scaleCurrent);
     const lift = window.innerWidth < 720 ? 0.35 : 0.62;
-    points.position.y = lift;
-    const camX = reduce ? 0 : pointer.x * 0.42;
-    const camY = reduce ? 0.05 : 0.05 + pointer.y * 0.28;
+    points.position.y = spec ? lift * 0.72 : lift;
+    const camX = reduce ? 0 : pointer.x * (spec ? 0.18 : 0.42);
+    const camY = reduce ? 0.05 : 0.05 + pointer.y * (spec ? 0.12 : 0.28);
     camera.position.x += (camX - camera.position.x) * 0.08;
     camera.position.y += (camY - camera.position.y) * 0.08;
-    camera.lookAt(shiftCurrent * 0.35, 0.02, 0);
+    camera.position.z = zCurrent;
+    camera.lookAt(shiftCurrent * (spec ? 0.12 : 0.35), spec ? 0.08 : 0.02, 0);
 
     renderer.render(scene, camera);
   }

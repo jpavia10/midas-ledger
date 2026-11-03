@@ -37,10 +37,10 @@
       <a class="when-locked" href="#gate" aria-current="true">Unlock</a>
       <a class="when-locked" href="#wing">Wing</a>
       <a href="https://jpavia10.github.io/prometheus-hub/">Hub</a>
-      <a class="when-open section-link" href="#overview">Overview</a>
-      <a class="when-open section-link" href="#cards">Cards</a>
-      <a class="when-open section-link" href="#cash">Cash</a>
-      <a class="when-open section-link" href="#book">Book</a>
+      <a class="when-open section-link" href="#overview" data-detail="group:overview">Overview</a>
+      <a class="when-open section-link" href="#cards" data-detail="group:cards">Cards</a>
+      <a class="when-open section-link" href="#cash" data-detail="group:cash">Cash</a>
+      <a class="when-open section-link" href="#book" data-detail="group:book">Book</a>
       <button type="button" class="textbtn when-open" data-lock>Lock</button>
     </nav>
   </header>
@@ -79,17 +79,18 @@
   </main>
 
   <main id="app" hidden></main>
+  <div id="detail" hidden></div>
 
   <nav class="dock" aria-label="Desk">
     <div class="dock-links">
       <a class="when-locked" href="#wing">Wing</a>
-      <a class="when-open" href="#overview">Overview</a>
+      <a class="when-open" href="#overview" data-detail="group:overview">Overview</a>
       <span class="sep when-open" aria-hidden="true">·</span>
-      <a class="when-open" href="#cards">Cards</a>
+      <a class="when-open" href="#cards" data-detail="group:cards">Cards</a>
       <span class="sep when-open" aria-hidden="true">·</span>
-      <a class="when-open" href="#cash">Cash</a>
+      <a class="when-open" href="#cash" data-detail="group:cash">Cash</a>
       <span class="sep when-open" aria-hidden="true">·</span>
-      <a class="when-open" href="#book">Book</a>
+      <a class="when-open" href="#book" data-detail="group:book">Book</a>
     </div>
     <a class="dock-cta" href="https://jpavia10.github.io/prometheus-hub/">Open Hub <span aria-hidden="true">→</span></a>
   </nav>

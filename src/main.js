@@ -1,5 +1,7 @@
 import { startField } from "./particles.js";
-import { bindNav, mountLedger } from "./ledger.js";
+import { bindNav, mountLedger, presentBook } from "./ledger.js";
+
+export { presentBook };
 
 const canvas = document.getElementById("field");
 

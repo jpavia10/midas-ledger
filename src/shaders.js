@@ -130,12 +130,12 @@ void main() {
   float alpha = max(strength, dust);
   if (alpha < 0.02) discard;
 
-  vec3 ember = vec3(1.0, 0.48, 0.14);
-  vec3 gold = vec3(1.0, 0.76, 0.36);
-  vec3 white = vec3(1.0, 0.94, 0.82);
-  vec3 color = mix(ember, gold, smoothstep(0.0, 0.55, strength));
-  color = mix(color, white, smoothstep(0.5, 0.72, strength) * 0.45);
-  color = mix(color, vec3(1.0, 0.84, 0.55), vSpark * 0.28);
+  vec3 tide = vec3(0.42, 0.62, 0.92);
+  vec3 lilac = vec3(0.70, 0.66, 0.96);
+  vec3 pearl = vec3(0.90, 0.95, 1.0);
+  vec3 color = mix(tide, lilac, smoothstep(0.0, 0.5, strength));
+  color = mix(color, pearl, smoothstep(0.45, 0.72, strength) * 0.62);
+  color = mix(color, vec3(0.72, 0.92, 1.0), vSpark * 0.24);
 
   float edgeFade = smoothstep(3.1, 0.2, vRadius);
   alpha *= mix(0.78, 1.0, edgeFade);
@@ -168,7 +168,7 @@ void main() {
   if (d > 0.5) discard;
   float alpha = smoothstep(0.5, 0.0, d);
   alpha *= alpha;
-  vec3 color = mix(vec3(1.0, 0.72, 0.4), vec3(1.0, 0.95, 0.86), smoothstep(1.0, 4.5, vSize));
+  vec3 color = mix(vec3(0.62, 0.74, 0.96), vec3(0.94, 0.96, 1.0), smoothstep(1.0, 4.5, vSize));
   gl_FragColor = vec4(color * alpha, alpha * 0.85);
 }
 `;

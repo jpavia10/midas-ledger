@@ -1,6 +1,6 @@
 # Midas Ledger
 
-The finance wing of Prometheus Hub. Same midnight field, same thin glass. The book stays encrypted in the browser.
+The finance wing of Prometheus Hub. Cool midnight field, pearl glass, no vault gold. The book stays encrypted in the browser.
 
 https://jpavia10.github.io/midas-ledger/
 

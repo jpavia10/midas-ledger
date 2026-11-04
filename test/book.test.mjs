@@ -101,8 +101,8 @@ test("charts use decrypted card numbers and no stand-in balances", () => {
   assert.match(spark, /data-score="500"/);
   assert.match(spark, /data-score="380"/);
   assert.match(spark, /Jan &quot;a&quot;/);
-  assert.equal(floorTip(4200, 3000), "Banked $4,200.00 · Floor $3,000.00 · Above floor by $1,200.00");
-  assert.equal(floorTip(1000, 3000), "Banked $1,000.00 · Floor $3,000.00 · Short $2,000.00");
+  assert.equal(floorTip(4200, 3000), "Spendable $4,200.00 · Floor $3,000.00 · Above floor by $1,200.00");
+  assert.equal(floorTip(1000, 3000), "Spendable $1,000.00 · Floor $3,000.00 · Short $2,000.00");
   assert.equal(floorTip("", 3000), "");
   assert.equal(sparkHtml([{ when: "only", score: 1 }]), "");
 });

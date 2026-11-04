@@ -1,5 +1,6 @@
+import { demoBook } from "./demo.js";
+import { bindNav, mountLedger, presentBook, showTab } from "./ledger.js";
 import { startField } from "./particles.js";
-import { bindNav, mountLedger, presentBook } from "./ledger.js";
 
 export { presentBook };
 
@@ -27,7 +28,15 @@ if (vaultEl) {
   }
 }
 
-mountLedger(vault);
+const preview = new URLSearchParams(location.search).has("hud")
+  && (location.hostname === "localhost" || location.hostname === "127.0.0.1");
+if (preview) {
+  presentBook(demoBook());
+  const tab = new URLSearchParams(location.search).get("tab");
+  if (tab) showTab(tab);
+} else {
+  mountLedger(vault);
+}
 
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
   window.addEventListener("load", function () {

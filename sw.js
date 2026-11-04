@@ -1,5 +1,5 @@
 /* Midas Ledger. Network first. Same-origin shell only. No secrets. */
-var CACHE = "midas-ledger-book-v4";
+var CACHE = "midas-ledger-hud-v5";
 var SHELL = [
   "./",
   "./index.html",

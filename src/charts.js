@@ -1,5 +1,12 @@
 /* Charts drawn from decrypted numbers only. */
 
+export const CYAN = "#3de0ff";
+export const MAGENTA = "#ff2bd6";
+export const LIME = "#c6ff4a";
+const VIOLET = "#b388ff";
+const AMBER = "#ffb020";
+const SERIES = [CYAN, MAGENTA, LIME, VIOLET, AMBER];
+
 function money(n) {
   return n == null || !Number.isFinite(n) ? "—" : "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -13,9 +20,18 @@ function escAttr(s) {
 }
 
 function finite(n) {
-  if (n == null || n === "") return null;
-  const value = typeof n === "number" ? n : Number(n);
-  return Number.isFinite(value) ? value : null;
+  if (typeof n === "number" && Number.isFinite(n)) return n;
+  return null;
+}
+
+export function spendableOf(book) {
+  const liquid = book && book.liquid;
+  const fromLiquid = liquid ? finite(liquid.avail) : null;
+  if (fromLiquid != null) return fromLiquid;
+  const head = (book && book.headline) || {};
+  const named = finite(head.spendable);
+  if (named != null) return named;
+  return finite(head.banked);
 }
 
 export function floorTip(banked, floor) {
@@ -24,7 +40,7 @@ export function floorTip(banked, floor) {
   if (have == null || goal == null) return "";
   const gap = have - goal;
   const rel = gap >= 0 ? "Above floor by " + money(gap) : "Short " + money(goal - have);
-  return "Banked " + money(have) + " · Floor " + money(goal) + " · " + rel;
+  return "Spendable " + money(have) + " · Floor " + money(goal) + " · " + rel;
 }
 
 export function sparkHtml(history) {
@@ -32,10 +48,11 @@ export function sparkHtml(history) {
   if (h.length < 2) return "";
   const W = 320;
   const H = 70;
+  const inset = 8;
   const mn = Math.min(...h.map((x) => x.score), 400) - 10;
   const mx = Math.max(...h.map((x) => x.score)) + 10;
   const span = mx - mn || 1;
-  const pt = (v, i) => [(i / (h.length - 1)) * W, H - ((v - mn) / span) * H];
+  const pt = (v, i) => [inset + (i / (h.length - 1)) * (W - inset * 2), H - ((v - mn) / span) * H];
   const d = h.map((x, i) => pt(x.score, i).map((n) => n.toFixed(1)).join(",")).join(" ");
   const gy = pt(400, 0)[1];
   const last = h.at(-1);
@@ -43,15 +60,15 @@ export function sparkHtml(history) {
     <p class="chart-tip" role="status" hidden></p>
     <div class="scrub" hidden></div>
     <svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="Stress history">
-      <line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="#9fd4e8" stroke-dasharray="4 4"/>
-      <polyline points="${d}" fill="none" stroke="#c9d7ea" stroke-width="2"/>
+      <line x1="${inset}" x2="${W - inset}" y1="${gy}" y2="${gy}" stroke="${CYAN}" stroke-dasharray="4 4"/>
+      <polyline points="${d}" fill="none" stroke="${LIME}" stroke-width="2"/>
       ${h.map((x, i) => {
         const [px, py] = pt(x.score, i);
         const label = escAttr(x.when) + ": " + x.score;
-        return `<circle class="spark-hit" cx="${px}" cy="${py}" r="12" fill="transparent" tabindex="0" role="button" data-open="history:${i}" data-score="${escAttr(x.score)}" data-when="${escAttr(x.when)}" aria-label="${label}"></circle><circle class="spark-dot" cx="${px}" cy="${py}" r="2.5" fill="#e8eef8" pointer-events="none"><title>${label}</title></circle>`;
+        return `<circle class="spark-hit" cx="${px}" cy="${py}" r="12" fill="transparent" tabindex="0" role="button" data-open="history:${i}" data-score="${escAttr(x.score)}" data-when="${escAttr(x.when)}" aria-label="${label}"></circle><circle class="spark-dot" cx="${px}" cy="${py}" r="2.5" fill="#f4fbff" pointer-events="none"><title>${label}</title></circle>`;
       }).join("")}
-      <text x="0" y="${H + 12}" fill="#c5d0de" font-size="9">${esc(h[0].when)} ${h[0].score}</text>
-      <text x="${W}" y="${H + 12}" fill="#c5d0de" font-size="9" text-anchor="end">${esc(last.when)} ${last.score}</text>
+      <text x="0" y="${H + 12}" fill="#9eb4c4" font-size="9" font-family="ui-monospace, monospace">${esc(h[0].when)} ${h[0].score}</text>
+      <text x="${W}" y="${H + 12}" fill="#9eb4c4" font-size="9" font-family="ui-monospace, monospace" text-anchor="end">${esc(last.when)} ${last.score}</text>
     </svg>
   </div>`;
 }
@@ -73,6 +90,209 @@ export function compositionHtml(cards) {
     </button>`;
   }).join("");
   return `<div class="chart" data-chart="revolving"><p class="kicker">Card balances</p><div class="comp">${rows}</div></div>`;
+}
+
+function flowRows(book) {
+  const months = (book && book.cashflow && book.cashflow.months) || [];
+  return months.map((m) => {
+    const income = (finite(m.income) || 0) + (finite(m.other_in) || 0);
+    const spend = (finite(m.lifestyle) || 0) + (finite(m.debt) || 0) + (finite(m.fees) || 0) + (finite(m.atm) || 0);
+    return {
+      id: m.id || "",
+      label: m.label || m.id || "",
+      stub: !!m.stub,
+      income,
+      spend,
+      net: finite(m.net)
+    };
+  });
+}
+
+function flowSvg(rows) {
+  if (!rows.length) return "";
+  const W = 360;
+  const H = 168;
+  const pad = 28;
+  const base = H - 36;
+  const maxBar = Math.max(...rows.map((r) => Math.max(r.income, r.spend)), 1);
+  const nets = rows.map((r) => r.net).filter((n) => n != null);
+  const netMin = Math.min(0, ...(nets.length ? nets : [0]));
+  const netMax = Math.max(0, ...(nets.length ? nets : [0]));
+  const netSpan = netMax - netMin || 1;
+  const slot = (W - pad * 2) / rows.length;
+  const netY = (n) => 18 + (1 - (n - netMin) / netSpan) * (base - 22);
+  const points = [];
+  const bars = rows.map((row, i) => {
+    const cx = pad + slot * i + slot / 2;
+    const hIn = (row.income / maxBar) * (base - 28);
+    const hOut = (row.spend / maxBar) * (base - 28);
+    const x0 = cx - 14;
+    if (row.net != null) points.push(cx.toFixed(1) + "," + netY(row.net).toFixed(1));
+    return `<rect x="${x0.toFixed(1)}" y="${(base - hIn).toFixed(1)}" width="12" height="${hIn.toFixed(1)}" fill="${CYAN}" rx="2"><title>${esc(row.label)} in ${money(row.income)}</title></rect>
+      <rect x="${(x0 + 14).toFixed(1)}" y="${(base - hOut).toFixed(1)}" width="12" height="${hOut.toFixed(1)}" fill="${MAGENTA}" rx="2"><title>${esc(row.label)} out ${money(row.spend)}</title></rect>
+      <text x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle" fill="#9eb4c4" font-size="10" font-family="ui-monospace, monospace">${esc(row.label)}${row.stub ? "*" : ""}</text>`;
+  }).join("");
+  const zero = netY(0);
+  const line = points.length > 1 ? `<polyline points="${points.join(" ")}" fill="none" stroke="${LIME}" stroke-width="2"/>` : "";
+  const dots = rows.map((row, i) => {
+    if (row.net == null) return "";
+    const cx = pad + slot * i + slot / 2;
+    return `<circle cx="${cx.toFixed(1)}" cy="${netY(row.net).toFixed(1)}" r="3" fill="${LIME}"><title>${esc(row.label)} net ${money(row.net)}</title></circle>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Income versus spend, net line">
+    <line x1="${pad}" x2="${W - 8}" y1="${zero.toFixed(1)}" y2="${zero.toFixed(1)}" stroke="rgba(198,255,74,0.35)" stroke-dasharray="3 3"/>
+    ${bars}${line}${dots}
+  </svg>`;
+}
+
+function categoryBlock(book) {
+  const months = (book && book.categories && book.categories.months) || [];
+  const picked = [...months].reverse().find((m) => !m.stub && (m.items || []).length)
+    || [...months].reverse().find((m) => (m.items || []).length);
+  if (!picked) return "";
+  const items = picked.items || [];
+  const max = Math.max(...items.map((item) => finite(item.amount) || 0), 1);
+  const rows = items.map((item) => {
+    const amount = finite(item.amount) || 0;
+    const width = Math.max(2, (amount / max) * 100).toFixed(1);
+    return `<div class="comp-row cat-row" data-cat="${escAttr(item.name)}" data-amount="${escAttr(amount)}">
+      <span class="comp-name">${esc(item.name)}</span>
+      <span class="comp-track" aria-hidden="true"><i style="width:${width}%"></i></span>
+      <span class="comp-fig num">${esc(money(amount))}</span>
+    </div>`;
+  }).join("");
+  const burn = finite(picked.burn);
+  return `<article class="card metric">
+    <p class="kicker">Categories · ${esc(picked.label || picked.id || "")}${picked.stub ? " · stub" : ""}</p>
+    <p class="meta">${burn == null ? "" : "Burn " + money(burn)}</p>
+    <div class="chart comp">${rows}</div>
+  </article>`;
+}
+
+function utilitySvg(book) {
+  const util = (book && book.utilities) || {};
+  const months = util.months || [];
+  if (!months.length) return "";
+  const ids = [];
+  months.forEach((month) => {
+    Object.keys(month.providers || {}).forEach((id) => {
+      if (!ids.includes(id)) ids.push(id);
+    });
+  });
+  const names = {};
+  (util.providers || []).forEach((p) => { names[p.id] = p.name || p.id; });
+  const W = 360;
+  const H = 180;
+  const pad = 28;
+  const base = H - 36;
+  const max = Math.max(...months.map((m) => Math.max(finite(m.cumulative) || 0, finite(m.total) || 0)), 1);
+  const slot = (W - pad * 2) / months.length;
+  const yOf = (v) => base - (v / max) * (base - 20);
+  const bars = months.map((month, i) => {
+    const cx = pad + slot * i + slot / 2;
+    let y = base;
+    const segs = ids.map((id, n) => {
+      const amount = finite((month.providers || {})[id]) || 0;
+      const h = (amount / max) * (base - 20);
+      y -= h;
+      return `<rect x="${(cx - 10).toFixed(1)}" y="${y.toFixed(1)}" width="20" height="${h.toFixed(1)}" fill="${SERIES[n % SERIES.length]}"><title>${esc(names[id] || id)} ${money(amount)}</title></rect>`;
+    }).join("");
+    return segs + `<text x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle" fill="#9eb4c4" font-size="10" font-family="ui-monospace, monospace">${esc(month.label || month.id || "")}</text>`;
+  }).join("");
+  const line = months.map((month, i) => {
+    const cx = pad + slot * i + slot / 2;
+    return cx.toFixed(1) + "," + yOf(finite(month.cumulative) || 0).toFixed(1);
+  }).join(" ");
+  const legend = ids.map((id, n) => `<span class="legend"><i style="background:${SERIES[n % SERIES.length]}"></i>${esc(names[id] || id)}</span>`).join("");
+  const rows = months.map((month) => `<li data-util-month="${escAttr(month.id || "")}" data-util-total="${escAttr(month.total ?? "")}" data-util-cum="${escAttr(month.cumulative ?? "")}">${esc(month.label || month.id || "")} <b class="num">${esc(money(finite(month.total)))}</b> <span class="meta">cum ${esc(money(finite(month.cumulative)))}</span></li>`).join("");
+  return `<article class="card metric">
+    <p class="kicker">Utilities</p>
+    <div class="legend-row">${legend}<span class="legend"><i style="background:${LIME}"></i>Cumulative</span></div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Utilities by month and cumulative">
+      ${bars}
+      <polyline points="${line}" fill="none" stroke="${LIME}" stroke-width="2"/>
+    </svg>
+    <ul class="mini">${rows}</ul>
+  </article>`;
+}
+
+export function positionFromCards(book) {
+  const cards = (book && book.cards) || [];
+  const skip = (card) => {
+    const marks = card.marks || [];
+    if (marks.includes("STALE?") || marks.includes("NEED YOU") || marks.includes("PAST DUE")) return true;
+    return typeof card.balance !== "number" || !Number.isFinite(card.balance);
+  };
+  let assets = 0;
+  let liabilities = 0;
+  let haveAssets = false;
+  let haveLiabilities = false;
+  cards.forEach((card) => {
+    if (skip(card)) return;
+    if (card.section === "Cash" || card.section === "Assets beyond cash") {
+      assets += card.balance;
+      haveAssets = true;
+    } else if (card.section === "Loans") {
+      liabilities += card.balance;
+      haveLiabilities = true;
+    }
+  });
+  const revolving = book && book.headline ? finite(book.headline.revolving) : null;
+  if (revolving != null) {
+    liabilities += revolving;
+    haveLiabilities = true;
+  }
+  return {
+    assets: haveAssets ? assets : null,
+    liabilities: haveLiabilities ? liabilities : null
+  };
+}
+
+function networthBlock(book) {
+  const snaps = ((book && book.networth && book.networth.snapshots) || []).filter((s) => finite(s.net) != null);
+  const position = positionFromCards(book);
+  if (!snaps.length && position.assets == null && position.liabilities == null) return "";
+  let svg = "";
+  if (snaps.length >= 2) {
+    const W = 360;
+    const H = 120;
+    const nums = snaps.map((s) => s.net);
+    const mn = Math.min(...nums);
+    const mx = Math.max(...nums);
+    const span = mx - mn || 1;
+    const pt = (v, i) => [(i / (snaps.length - 1)) * (W - 16) + 8, 16 + (1 - (v - mn) / span) * (H - 36)];
+    const d = snaps.map((s, i) => pt(s.net, i).map((n) => n.toFixed(1)).join(",")).join(" ");
+    svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Net worth trend">
+      <polyline points="${d}" fill="none" stroke="${CYAN}" stroke-width="2"/>
+      ${snaps.map((s, i) => {
+        const [x, y] = pt(s.net, i);
+        return `<circle cx="${x}" cy="${y}" r="3" fill="${CYAN}" data-nw="${escAttr(s.when)}" data-net="${escAttr(s.net)}"><title>${esc(s.when)} ${money(s.net)}</title></circle>`;
+      }).join("")}
+    </svg>`;
+  } else if (snaps.length === 1) {
+    svg = `<p class="figure num" data-nw="${escAttr(snaps[0].when)}" data-net="${escAttr(snaps[0].net)}">${esc(money(snaps[0].net))}</p><p class="meta">${esc(snaps[0].when)}</p>`;
+  }
+  const pair = (position.assets != null || position.liabilities != null) ? `<div class="pair tight">
+      <article class="card inset"><p class="kicker">Assets</p><p class="figure num">${esc(money(position.assets))}</p></article>
+      <article class="card inset"><p class="kicker">Liabilities</p><p class="figure num debt">${esc(money(position.liabilities))}</p></article>
+    </div>` : "";
+  return `<article class="card metric">
+    <p class="kicker">Net worth</p>
+    ${svg}
+    ${pair}
+    <p class="meta">Stale and need-you balances stay out of the pair.</p>
+  </article>`;
+}
+
+export function flowChartsHtml(book) {
+  const rows = flowRows(book);
+  const flow = rows.length ? `<article class="card metric">
+      <p class="kicker">Income vs spend</p>
+      <div class="legend-row"><span class="legend"><i style="background:${CYAN}"></i>In</span><span class="legend"><i style="background:${MAGENTA}"></i>Out</span><span class="legend"><i style="background:${LIME}"></i>Net</span></div>
+      ${flowSvg(rows)}
+      <ul class="mini">${rows.map((row) => `<li data-flow-month="${escAttr(row.id)}" data-flow-income="${escAttr(row.income)}" data-flow-spend="${escAttr(row.spend)}" data-flow-net="${row.net == null ? "" : escAttr(row.net)}"><span>${esc(row.label)}</span> <b class="num">${row.net == null ? "—" : esc(money(row.net))}</b></li>`).join("")}</ul>
+    </article>` : `<article class="card metric"><p class="kicker">Income vs spend</p><p class="meta">Cash flow shows up when the book is rebuilt with a Plaid rollup or a Cash flow page.</p></article>`;
+  return `<div class="flow-stack">${flow}${categoryBlock(book)}${utilitySvg(book)}${networthBlock(book)}</div>`;
 }
 
 function placeTip(chart, tip, clientX) {

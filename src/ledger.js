@@ -2,7 +2,7 @@
    localStorage "midasKey" is { salt, k } where k is the raw AES key (base64).
    A new salt asks for the password again. The password is never stored. */
 
-import { bindCharts, compositionHtml, sparkHtml } from "./charts.js";
+import { bindCharts, compositionHtml, CYAN, flowChartsHtml, MAGENTA, sparkHtml, spendableOf } from "./charts.js";
 import { configureDesk, normalizeEntry, onDeskChange, readDesk } from "./desk.js";
 import { bindDetail, ORDER, setBook } from "./detail.js";
 import { applyAccountFilter, bindFilters, filterBarHtml, getFilter, paintFilter } from "./filter.js";
@@ -83,16 +83,16 @@ function gauge(s) {
   const a = Math.PI * (1 - p);
   const x = 100 + 80 * Math.cos(a);
   const y = 100 - 80 * Math.sin(a);
-  const c = s < 400 ? "#9fd4e8" : s < 550 ? "#c4b6e8" : "#e7a8c4";
+  const c = s < 400 ? CYAN : s < 550 ? "#c6ff4a" : MAGENTA;
   const g = Math.PI * (1 - 0.4);
   const gx = 100 + 80 * Math.cos(g);
   const gy = 100 - 80 * Math.sin(g);
   return `<svg viewBox="0 0 200 115" width="100%" role="img" aria-label="Stress ${s ?? "?"} out of 1000, lower is better">
     <path d="M20 100A80 80 0 0 1 180 100" stroke="rgba(255,255,255,0.16)" stroke-width="14" fill="none" stroke-linecap="round"/>
     <path d="M20 100A80 80 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}" stroke="${c}" stroke-width="14" fill="none" stroke-linecap="round"/>
-    <circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="3.5" fill="#9fd4e8"/>
-    <text x="100" y="92" text-anchor="middle" fill="#eef3f8" font-size="34" font-weight="300" font-family="Outfit, sans-serif">${s ?? "?"}</text>
-    <text x="100" y="110" text-anchor="middle" fill="#c5d0de" font-size="9">/1000 · lower better · goal &lt;400</text>
+    <circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="3.5" fill="${CYAN}"/>
+    <text x="100" y="92" text-anchor="middle" fill="#f3fbff" font-size="34" font-weight="500" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">${s ?? "?"}</text>
+    <text x="100" y="110" text-anchor="middle" fill="#9eb4c4" font-size="9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">/1000 · lower better · goal &lt;400</text>
   </svg>`;
 }
 
@@ -129,63 +129,100 @@ function sheet(id, shift, side, kicker, title, body) {
   </section>`;
 }
 
-export function ledgerHtml(d) {
-  const h = d.headline;
-  const cards = d.cards;
-  const by = (section) => cards.filter((c) => c.section === section);
-  const pct = Math.min(100, (h.banked || 0) / (h.floor || 3000) * 100);
-  const ordered = by("Cards (detail)").sort((a, b) => (ORDER[a.id]?.[0] ?? 9) - (ORDER[b.id]?.[0] ?? 9));
-  const attention = cards.filter((c) => c.marks.includes("NEED YOU") || c.marks.includes("STALE?"));
-  const floorNote = pct >= 100 ? "Above floor by " + money(h.banked - h.floor) : "Short " + money(h.floor - h.banked);
-  const bar = pct >= 100 ? "#9fd4e8" : "#c4b6e8";
-  const when = esc(d.ledger_update || d.ledger_revised || "");
+function ring(pct, color) {
+  const radius = 46;
+  const circ = 2 * Math.PI * radius;
+  const dash = Math.max(0, Math.min(1, (pct || 0) / 100)) * circ;
+  return `<svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+    <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(61,224,255,0.16)" stroke-width="8"/>
+    <circle cx="60" cy="60" r="${radius}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" transform="rotate(-90 60 60)"/>
+  </svg>`;
+}
 
-  const overview = `<section class="panel hero" id="overview" data-shift="0" data-nav>
+export function showTab(name) {
+  const app = document.getElementById("app");
+  if (!app) return;
+  app.querySelectorAll("[data-tab-panel]").forEach((el) => {
+    el.hidden = el.getAttribute("data-tab-panel") !== name;
+  });
+  document.querySelectorAll("[data-tab]").forEach((btn) => {
+    const on = btn.getAttribute("data-tab") === name;
+    if (on) btn.setAttribute("aria-current", "page");
+    else btn.removeAttribute("aria-current");
+  });
+  const scroller = document.scrollingElement;
+  if (scroller) scroller.scrollTop = 0;
+}
+
+function bindTabs() {
+  if (document.body.dataset.tabs === "1") return;
+  document.body.dataset.tabs = "1";
+  document.body.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-tab]");
+    if (!tab || !document.body.classList.contains("is-open")) return;
+    event.preventDefault();
+    showTab(tab.getAttribute("data-tab") || "home");
+  });
+}
+
+export function ledgerHtml(d) {
+  const h = d.headline || {};
+  const cards = d.cards || [];
+  const by = (section) => cards.filter((c) => c.section === section);
+  const have = spendableOf(d);
+  const floor = h.floor || 3000;
+  const pct = have == null ? 0 : Math.min(100, (have / floor) * 100);
+  const ordered = by("Cards (detail)").sort((a, b) => (ORDER[a.id]?.[0] ?? 9) - (ORDER[b.id]?.[0] ?? 9));
+  const attention = cards.filter((c) => (c.marks || []).includes("NEED YOU") || (c.marks || []).includes("STALE?") || (c.marks || []).includes("PAST DUE"));
+  const floorNote = have == null ? "" : (pct >= 100 ? "Above floor by " + money(have - floor) : "Short " + money(floor - have));
+  const bar = pct >= 100 ? CYAN : MAGENTA;
+  const when = esc(d.ledger_update || d.ledger_revised || "");
+  const holds = (d.liquid && d.liquid.holds) || [];
+  const holdHtml = holds.length ? `<ul class="holds">${holds.map((hold) => `<li><span class="id">${esc(hold.acct || "")}</span> ${esc(hold.memo || hold.name || "Hold")} <b class="num">${money(hold.amount)}</b></li>`).join("")}</ul>` : `<p class="meta">No holds on the spendable accounts.</p>`;
+
+  const overview = `<section class="panel hero hud-home" id="overview" data-tab-panel="home" data-shift="0" data-nav>
     <div class="hero-mark">
       <span class="sq big" aria-hidden="true"></span>
       <h1 id="overview-title" tabindex="-1">MIDAS <span class="hub">ledger</span></h1>
     </div>
     <div class="hero-copy overview-copy">
-      <p class="kicker">Finance wing</p>
-      <p class="lede">Built ${esc(d.built_pt)} · ledger: ${when}</p>
+      <p class="kicker">Spendable · Plaid available</p>
+      <p class="lede">Built ${esc(d.built_pt || "")} · ledger: ${when}</p>
     </div>
+    <article class="card metric glow-card opener" ${opener("metric:banked")}>
+      <div class="spend-row">
+        ${ring(pct, bar)}
+        <div>
+          <p class="kicker">Spendable available</p>
+          <p class="figure num glow">${money(have)}</p>
+          <p class="meta">Floor ${money(h.floor)} · ${floorNote}</p>
+        </div>
+      </div>
+      <div class="chart" data-chart="floor" data-banked="${have ?? ""}" data-floor="${h.floor ?? ""}">
+        <div class="bar" role="img" aria-label="${escAttr(floorNote)}"><i style="width:${pct}%;background:${bar}"></i></div>
+        <p class="chart-tip" role="status" hidden></p>
+      </div>
+      <p class="kicker holds-kicker">Holds</p>
+      ${holdHtml}
+    </article>
   </section>`;
 
-  const metrics = `<section class="overview-metrics" aria-label="Headline">
-    <article class="card metric">
+  const metrics = `<section class="overview-metrics" aria-label="Headline" data-tab-panel="home">
+    <article class="card metric glow-card">
       <button type="button" class="metric-hit" data-open="metric:stress" data-chart="gauge" data-score="${h.stress ?? ""}">
         ${gauge(h.stress)}
         <p class="chart-tip gauge-tip" role="status" hidden></p>
       </button>
-      ${sparkHtml(d.history)}
-      <p class="meta">${d.history.length} points · dashed line = goal 400</p>
+      ${sparkHtml(d.history || [])}
+      <p class="meta">${(d.history || []).length} points · dashed line = goal 400</p>
     </article>
-    <div class="pair">
-      <article class="card metric opener" ${opener("metric:banked")}>
-        <div class="row">
-          <div>
-            <p class="kicker">Banked liquid</p>
-            <p class="figure">${money(h.banked)}</p>
-          </div>
-          <div class="floor">
-            <p class="kicker">Floor</p>
-            <p class="floor-num">${money(h.floor)}</p>
-          </div>
-        </div>
-        <div class="chart" data-chart="floor" data-banked="${h.banked ?? ""}" data-floor="${h.floor ?? ""}">
-          <div class="bar" role="img" aria-label="${escAttr(floorNote)}"><i style="width:${pct}%;background:${bar}"></i></div>
-          <p class="chart-tip" role="status" hidden></p>
-        </div>
-        <p class="meta">${floorNote}</p>
-      </article>
-      <article class="card metric">
-        <button type="button" class="metric-hit" data-open="metric:revolving">
-          <p class="kicker">Revolving total</p>
-          <p class="figure debt">${money(h.revolving)}</p>
-        </button>
-        ${compositionHtml(ordered)}
-      </article>
-    </div>
+    <article class="card metric">
+      <button type="button" class="metric-hit" data-open="metric:revolving">
+        <p class="kicker">Revolving</p>
+        <p class="figure num debt">${money(h.revolving)}</p>
+      </button>
+      ${compositionHtml(ordered)}
+    </article>
   </section>`;
 
   const attentionHtml = attention.length ? sheet(
@@ -237,7 +274,15 @@ export function ledgerHtml(d) {
     by("Loans").map((c) => cardRow(c)).join("")
   );
 
-  const book = `<section class="sheet" id="book" data-shift="1.05" data-nav>
+  const flow = `<section class="sheet" id="flow" data-tab-panel="flow" hidden data-nav>
+    <div class="sheet-inner">
+      <p class="kicker">Flow</p>
+      <h2><button type="button" class="sheet-title" data-open="group:flow">Cash flow</button></h2>
+      ${flowChartsHtml(d)}
+    </div>
+  </section>`;
+
+  const book = `<section class="sheet" id="book" data-tab-panel="book" hidden data-shift="1.05" data-nav>
     <div class="sheet-inner">
       <p class="kicker">Written pages</p>
       <h2 id="book-title" tabindex="-1"><button type="button" class="sheet-title" data-open="group:book">Full ledger</button></h2>
@@ -250,7 +295,12 @@ export function ledgerHtml(d) {
     </div>
   </section>`;
 
-  return overview + filterBarHtml() + metrics + attentionHtml + cardHtml + cashHtml + assetHtml + loanHtml + book;
+  return overview + metrics
+    + `<div data-tab-panel="accounts" hidden>${filterBarHtml()}${attentionHtml}</div>`
+    + `<div data-tab-panel="debt" hidden>${cardHtml}</div>`
+    + `<div data-tab-panel="accounts" hidden>${cashHtml}${assetHtml}</div>`
+    + `<div data-tab-panel="debt" hidden>${loanHtml}</div>`
+    + flow + book;
 }
 
 let navObserver = null;
@@ -318,7 +368,9 @@ function paintHtml(html, data) {
   const brand = document.getElementById("brand");
   if (brand) brand.setAttribute("href", "#overview");
   bindNav();
+  bindTabs();
   bindBook(app);
+  showTab("home");
   window.scrollTo(0, 0);
   const head = document.getElementById("overview-title");
   if (head) head.focus({ preventScroll: true });

@@ -1,6 +1,6 @@
 /* Detail views for the decrypted book. Only fields the book already carries.
    Device notes, pins, and reviewed marks are stored beside the book, not inside it. */
-import { bindCharts, compositionHtml, sparkHtml } from "./charts.js";
+import { bindCharts, compositionHtml, flowChartsHtml, sparkHtml, spendableOf } from "./charts.js";
 import { entryFor, formatReviewed, patchEntry } from "./desk.js";
 import { focusField, releaseField } from "./particles.js";
 
@@ -36,8 +36,8 @@ const MARK_HELP = {
   "SCREENSHOT": "Taken from a screenshot."
 };
 
-const CARD_KNOWN = new Set(["section", "id", "name", "balance", "marks", "asof", "source", "prev", "lines", "status"]);
-const HEAD_KNOWN = new Set(["stress", "banked", "floor", "revolving"]);
+const CARD_KNOWN = new Set(["section", "id", "name", "balance", "marks", "asof", "source", "prev", "lines", "status", "available", "current", "holds", "plaid"]);
+const HEAD_KNOWN = new Set(["stress", "banked", "floor", "revolving", "spendable", "logged_banked", "stress_note"]);
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const OPEN_MS = 880;
@@ -148,9 +148,11 @@ function cardsIn(bookData, section) {
   return (bookData.cards || []).filter((c) => c.section === section);
 }
 
-function floorNote(h) {
-  const pct = Math.min(100, (h.banked || 0) / (h.floor || 3000) * 100);
-  return pct >= 100 ? "Above floor by " + money(h.banked - h.floor) : "Short " + money(h.floor - h.banked);
+function floorNote(amount, floor) {
+  const have = amount || 0;
+  const goal = floor || 3000;
+  const pct = Math.min(100, (have / goal) * 100);
+  return pct >= 100 ? "Above floor by " + money(have - goal) : "Short " + money(goal - have);
 }
 
 function cardDetail(bookData, id) {
@@ -167,6 +169,8 @@ function cardDetail(bookData, id) {
     <div class="facts">
       ${fact("Id", card.id)}
       ${fact("Section", card.section)}
+      ${fact("Available", typeof card.available === "number" ? money(card.available) : "")}
+      ${fact("Current", typeof card.current === "number" ? money(card.current) : "")}
       ${fact("As of", card.asof)}
       ${fact("Source", card.source)}
       ${card.prev != null ? fact("Card said", money(card.prev)) : ""}
@@ -174,6 +178,7 @@ function cardDetail(bookData, id) {
       ${fact("Payoff", phase)}
       ${extraFacts(card, CARD_KNOWN)}
     </div>
+    ${(card.holds || []).length ? `<div class="notes"><p class="kicker">Holds</p>${card.holds.map((hold) => `<p>${esc(hold.memo || "Hold")} · ${money(hold.amount)}</p>`).join("")}</div>` : ""}
     ${notes(card.lines)}
     ${siblings.length ? `<div class="related"><p class="kicker">${esc(siblingLabel)}</p><div class="roster-list">${siblings.map(cardRoster).join("")}</div></div>` : ""}`;
 }
@@ -198,18 +203,23 @@ function metricDetail(bookData, which) {
         <span>${esc(point.when)}</span><span class="figure">${esc(point.score)}</span>
       </button>`).join("")}</div></div>` : ""}`;
   }
-  if (which === "banked") {
-    return `<p class="kicker">Banked liquid</p>
-      <h2 id="detail-title">${money(h.banked)}</h2>
-      <p class="meta">${esc(floorNote(h))}</p>
+  if (which === "banked" || which === "spendable") {
+    const have = spendableOf(bookData);
+    const note = floorNote(have, h.floor);
+    const holds = (bookData.liquid && bookData.liquid.holds) || [];
+    return `<p class="kicker">Spendable available</p>
+      <h2 id="detail-title">${money(have)}</h2>
+      <p class="meta">${esc(note)}</p>
       <div class="facts">
-        ${fact("Banked", money(h.banked))}
+        ${fact("Spendable", money(have))}
+        ${fact("Current", bookData.liquid && typeof bookData.liquid.current === "number" ? money(bookData.liquid.current) : "")}
         ${fact("Floor", money(h.floor))}
-        ${fact("Gap", floorNote(h))}
+        ${fact("Gap", note)}
         ${fact("Built", bookData.built_pt)}
         ${fact("Ledger", bookData.ledger_update || bookData.ledger_revised || "")}
         ${extraFacts(h, HEAD_KNOWN)}
-      </div>`;
+      </div>
+      ${holds.length ? `<div class="notes"><p class="kicker">Holds</p>${holds.map((hold) => `<p>${esc(hold.acct || "")} ${esc(hold.memo || "")} · ${money(hold.amount)}</p>`).join("")}</div>` : ""}`;
   }
   if (which === "revolving") {
     return `<p class="kicker">Revolving total</p>
@@ -271,7 +281,7 @@ function groupDetail(bookData, name) {
       <p class="meta">Built ${esc(bookData.built_pt || "")} · ledger: ${esc(bookData.ledger_update || bookData.ledger_revised || "")}</p>
       <div class="roster-list">
         <button type="button" class="roster" data-open="metric:stress"><span>Stress</span><span class="figure">${esc(h.stress ?? "—")}</span></button>
-        <button type="button" class="roster" data-open="metric:banked"><span>Banked liquid</span><span class="figure">${money(h.banked)}</span></button>
+        <button type="button" class="roster" data-open="metric:banked"><span>Spendable</span><span class="figure">${money(spendableOf(bookData))}</span></button>
         <button type="button" class="roster" data-open="metric:revolving"><span>Revolving total</span><span class="figure debt">${money(h.revolving)}</span></button>
       </div>`;
   }
@@ -291,6 +301,9 @@ function groupDetail(bookData, name) {
   if (name === "attention") {
     const list = (bookData.cards || []).filter((c) => (c.marks || []).includes("NEED YOU") || (c.marks || []).includes("STALE?"));
     return `<p class="kicker">Needs you / stale</p><h2 id="detail-title">Attention</h2><div class="roster-list">${list.map(cardRoster).join("")}</div>`;
+  }
+  if (name === "flow") {
+    return `<p class="kicker">Flow</p><h2 id="detail-title">Cash flow</h2>${flowChartsHtml(bookData)}`;
   }
   if (name === "book") {
     const pages = (bookData.sections || []).map((s, i) => `<button type="button" class="roster" data-open="section:${i}"><span>${esc(s.title)}</span><span class="go" aria-hidden="true">→</span></button>`).join("");

@@ -1,30 +1,20 @@
 # Midas Ledger
 
-The finance wing of Prometheus Hub. Cool midnight field, pearl glass, no vault gold. The book stays encrypted in the browser.
+Night HUD for the finance wing of Prometheus Hub. Near-black field, cyan / magenta / lime type, and a phone tab bar: Home, Flow, Accounts, Debt, Book. The book stays encrypted in the browser.
 
 https://jpavia10.github.io/midas-ledger/
 
 Balances are AES-256-GCM. The key is PBKDF2-SHA256, 600k iterations, and it never leaves the device. Remembering on this device stores the raw AES key in `localStorage` under `midasKey`, tied to the salt. A new salt asks for the password again. No password and no plaintext ledger are stored in this repo.
 
-Open the book, then tap an account, a headline figure, a chart point, a written page, or a dock tile. The glass grows out of that item. On a phone the panel sits as a sheet. Back, Escape, or a downward drag closes it.
-
-The filter bar under the headline narrows accounts by section (Cash, Cards, Loans, Assets), by mark (Need you, Stale, Hold), by pin, and by name or id. Reset clears it.
-
-The stress spark scrubs by point. The gauge and the cash-versus-floor bar show the figure under the pointer. Card balances sit beside the revolving total, and a row opens that account. Every chart uses numbers from the decrypted book.
+Home shows **spendable available** (Plaid available, not the inflated current balance), the holds sitting on top of it, the gap to the floor, the stress dial, and revolving. Flow charts income against spend, categories, utilities, and net worth when the decrypted book carries those fields. Stale, past due, and need-you rows stay out of the spendable sum.
 
 Pin, a device note, copy balance, and reviewed live on the account panel. They are stored in `localStorage` under `midasDesk:` plus the vault salt. They do not rewrite the encrypted book. Lock & forget clears the remembered key (`midasKey`) and leaves these device notes in place.
 
 Back to the desk: https://jpavia10.github.io/prometheus-hub/
 
-## Particles
-
-The field is the hub’s morph-particles desk, adapted from [MisterPrada/morph-particles](https://github.com/MisterPrada/morph-particles). Scroll mixes nebula, coin, ledger, and ring. The pointer leans the cloud. Shapes are drawn here. The christmas models are not included.
-
 ## Pages
 
-Publish the root of this repo to **jpavia10/midas-ledger**, branch **main**, folder **/ (root)**. `.nojekyll` is included. GitHub Pages does not run a build; `midas.js` is already bundled.
-
-Build it again after editing `src/`:
+Publish the root of this repo to **jpavia10/midas-ledger**, branch **main**, folder **/ (root)**. `.nojekyll` is included. GitHub Pages does not run a build; `midas.js` is already bundled. The bundle is the HUD plus a CSS grid on canvas. It does not ship Three.js.
 
 ```bash
 npm install
@@ -32,27 +22,56 @@ npm run build
 npm run check
 ```
 
-`npm run build` bundles `src/main.js` to `midas.js` with esbuild and copies the Outfit faces into `fonts/`. Three.js `0.164.1` matches the hub.
+`npm run check` runs the browser tests and `test/test_build.py`.
 
-Locally:
+Locally, after a build:
 
 ```bash
-npm install
-npm run build
 python3 -m http.server 8742
 ```
 
+`http://127.0.0.1:8742/?hud=1` opens a fictional book so the HUD can be reviewed without the password. That flag only works on localhost. The published site still asks for the password.
+
 ## Updating the encrypted book
 
-Put the new payload in a JSON file with `v`, `iter`, `salt`, `iv`, and `ct`. Then:
+Plaintext stays off git. `publish.sh` reads the ledger and an optional Plaid rollup, encrypts with `LEDGER_PAGE_PASSWORD`, and swaps the ciphertext via `scripts/set-vault.mjs`.
 
 ```bash
-node scripts/set-vault.mjs path/to/vault.json
-npm run check
+export LEDGER_MD=/path/to/LEDGER.md
+export LEDGER_PAGE_PASSWORD='…'          # not committed
+export CASHFLOW_JSON=/workspace/cashflow/oct2026-rollup.json   # optional
+export NETWORTH_JSON=/path/to/networth.json                    # optional sidecar
+./publish.sh
 ```
 
-That replaces the `#vault` script in `index.html` and the checksum in `test/vault.test.mjs`. Commit both. Do not commit the password or the plaintext.
+What that runs:
+
+1. `python3 build.py` writes the book JSON to a temp directory (it refuses `--out` inside this repo).
+2. `node scripts/encrypt-vault.mjs` turns that JSON into `{ v, iter, salt, iv, ct }`. Password from the environment, AES-256-GCM, PBKDF2-SHA256, 600k.
+3. `node scripts/set-vault.mjs` replaces the `#vault` script in `index.html` and the checksum in `test/vault.test.mjs`.
+4. `npm run build` and `npm run check`.
+
+Commit `index.html`, `test/vault.test.mjs`, and `midas.js`. Do not commit the password, `LEDGER.md`, `book.json`, or the rollup.
+
+`build.py` on its own:
+
+```bash
+python3 build.py --ledger "$LEDGER_MD" --cashflow "$CASHFLOW_JSON" --networth "$NETWORTH_JSON" --out /tmp/book.json
+```
+
+If `/workspace/cashflow/oct2026-rollup.json` is on the machine, it is picked up when `--cashflow` is omitted. A Cash flow section in the ledger is parsed too. The same month id (`2026-10`) merges, and the rollup wins on numbers. A later month in either source is appended.
+
+The book JSON the page decrypts includes:
+
+- `liquid.avail`, `liquid.current`, `liquid.holds[]`, `liquid.by_acct[]` — avail is the spendable sum of fresh cash available balances. Holds (Valon, Citi ACH, and the like) are listed and are not subtracted a second time.
+- `cashflow.months[]` with `income`, `other_in`, `lifestyle`, `debt`, `fees`, `atm`, `net`.
+- `utilities.months[]` with `providers`, `total`, and `cumulative`.
+- `categories.months[]` and `burn` when a category table or rollup has them.
+- `networth.snapshots[]`, taken from the full log before it is trimmed to 12 lines, plus a Net worth section, plus the sidecar when older points have fallen out of the log.
+- `stale[]` for `STALE?`, `PAST DUE`, and `NEED YOU`.
+
+Headline `banked` is set to that spendable available figure. A harvest log line cannot replace a fresher Plaid available balance (including the old A3 harvest `$1,804` overlay). Current balances are stored and shown, and they are not the headline.
 
 ## Home screen
 
-iPhone: Safari → Share → Add to Home Screen. Android: Chrome → Install app. The icon is the thin square. The name is Midas Ledger.
+iPhone: Safari → Share → Add to Home Screen. Android: Chrome → Install app. The name is Midas Ledger.

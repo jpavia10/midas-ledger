@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const { PNG } = require("pngjs");
 
 const bg = [5, 6, 10, 255];
-const fg = [246, 243, 238, 255];
+const fg = [232, 240, 248, 255];
 
 function paint(size, insetFrac, strokeFrac) {
   const png = new PNG({ width: size, height: size });

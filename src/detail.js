@@ -23,9 +23,9 @@ const SECTION_LABEL = {
 const CARD_KNOWN = new Set(["section", "id", "name", "balance", "marks", "asof", "source", "prev", "lines", "status"]);
 const HEAD_KNOWN = new Set(["stress", "banked", "floor", "revolving"]);
 
-const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
-const OPEN_MS = 920;
-const CLOSE_MS = 760;
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const OPEN_MS = 880;
+const CLOSE_MS = 720;
 
 let book = null;
 let detailKey = null;
@@ -324,13 +324,14 @@ function finishClose(gen) {
 function playOpen(panel, from) {
   if (reduceMotion()) return;
   const last = panel.getBoundingClientRect();
-  const dx = from.left - last.left;
-  const dy = from.top - last.top;
-  const sx = Math.max(0.18, from.width / Math.max(1, last.width));
-  const sy = Math.max(0.12, from.height / Math.max(1, last.height));
+  const dx = (from.left + from.width / 2) - (last.left + last.width / 2);
+  const dy = (from.top + from.height / 2) - (last.top + last.height / 2);
+  const sx = from.width / Math.max(1, last.width);
+  const sy = from.height / Math.max(1, last.height);
+  const s = Math.max(0.42, Math.min(sx, sy));
   panel.animate([
-    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, transformOrigin: "top left" },
-    { transform: "translate(0, 0) scale(1)", transformOrigin: "top left" }
+    { transform: `translate(${dx}px, ${dy}px) scale(${s})`, transformOrigin: "center" },
+    { transform: "translate(0, 0) scale(1)", transformOrigin: "center" }
   ], { duration: OPEN_MS, easing: EASE, fill: "both" });
   const scrim = layer().querySelector(".detail-scrim");
   if (scrim) scrim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 460, easing: "ease-out", fill: "both" });
@@ -448,13 +449,14 @@ export function closeDetail() {
   panel.style.transform = "";
   const origin = panel.getBoundingClientRect();
   const back = sourceEl.getBoundingClientRect();
-  const dx = back.left - origin.left;
-  const dy = back.top - origin.top;
-  const sx = Math.max(0.18, back.width / Math.max(1, origin.width));
-  const sy = Math.max(0.12, back.height / Math.max(1, origin.height));
+  const dx = (back.left + back.width / 2) - (origin.left + origin.width / 2);
+  const dy = (back.top + back.height / 2) - (origin.top + origin.height / 2);
+  const sx = back.width / Math.max(1, origin.width);
+  const sy = back.height / Math.max(1, origin.height);
+  const s = Math.max(0.42, Math.min(sx, sy));
   const anim = panel.animate([
-    { transform: "translate(0, 0) scale(1)", transformOrigin: "top left" },
-    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, transformOrigin: "top left" }
+    { transform: "translate(0, 0) scale(1)", transformOrigin: "center" },
+    { transform: `translate(${dx}px, ${dy}px) scale(${s})`, transformOrigin: "center" }
   ], { duration: CLOSE_MS, easing: EASE, fill: "both" });
   const scrim = root.querySelector(".detail-scrim");
   if (scrim) scrim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 420, easing: "ease-in", fill: "both" });

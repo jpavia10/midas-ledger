@@ -80,16 +80,16 @@ function gauge(s) {
   const a = Math.PI * (1 - p);
   const x = 100 + 80 * Math.cos(a);
   const y = 100 - 80 * Math.sin(a);
-  const c = s < 400 ? "#d5e2cf" : s < 550 ? "#e4c48a" : "#e3a598";
+  const c = s < 400 ? "#9fd4e8" : s < 550 ? "#c4b6e8" : "#e7a8c4";
   const g = Math.PI * (1 - 0.4);
   const gx = 100 + 80 * Math.cos(g);
   const gy = 100 - 80 * Math.sin(g);
   return `<svg viewBox="0 0 200 115" width="100%" role="img" aria-label="Stress ${s ?? "?"} out of 1000, lower is better">
     <path d="M20 100A80 80 0 0 1 180 100" stroke="rgba(255,255,255,0.16)" stroke-width="14" fill="none" stroke-linecap="round"/>
     <path d="M20 100A80 80 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}" stroke="${c}" stroke-width="14" fill="none" stroke-linecap="round"/>
-    <circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="3.5" fill="#d5e2cf"/>
-    <text x="100" y="92" text-anchor="middle" fill="#f6f3ee" font-size="34" font-weight="300" font-family="Outfit, sans-serif">${s ?? "?"}</text>
-    <text x="100" y="110" text-anchor="middle" fill="#a7b0bf" font-size="9">/1000 · lower better · goal &lt;400</text>
+    <circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="3.5" fill="#9fd4e8"/>
+    <text x="100" y="92" text-anchor="middle" fill="#eef3f8" font-size="34" font-weight="300" font-family="Outfit, sans-serif">${s ?? "?"}</text>
+    <text x="100" y="110" text-anchor="middle" fill="#c5d0de" font-size="9">/1000 · lower better · goal &lt;400</text>
   </svg>`;
 }
 
@@ -104,14 +104,14 @@ function spark(h) {
   const gy = pt(400, 0)[1];
   const last = h.at(-1);
   return `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="Stress history">
-    <line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="#d5e2cf" stroke-dasharray="4 4"/>
-    <polyline points="${d}" fill="none" stroke="#e7c48a" stroke-width="2"/>
+    <line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="#9fd4e8" stroke-dasharray="4 4"/>
+    <polyline points="${d}" fill="none" stroke="#c9d7ea" stroke-width="2"/>
     ${h.map((x, i) => {
       const [px, py] = pt(x.score, i);
-      return `<circle cx="${px}" cy="${py}" r="2.5" fill="#f0d7a8"><title>${escAttr(x.when)}: ${x.score}</title></circle>`;
+      return `<circle cx="${px}" cy="${py}" r="2.5" fill="#e8eef8"><title>${escAttr(x.when)}: ${x.score}</title></circle>`;
     }).join("")}
-    <text x="0" y="${H + 12}" fill="#a7b0bf" font-size="9">${esc(h[0].when)} ${h[0].score}</text>
-    <text x="${W}" y="${H + 12}" fill="#a7b0bf" font-size="9" text-anchor="end">${esc(last.when)} ${last.score}</text>
+    <text x="0" y="${H + 12}" fill="#c5d0de" font-size="9">${esc(h[0].when)} ${h[0].score}</text>
+    <text x="${W}" y="${H + 12}" fill="#c5d0de" font-size="9" text-anchor="end">${esc(last.when)} ${last.score}</text>
   </svg>`;
 }
 
@@ -152,7 +152,7 @@ export function ledgerHtml(d) {
   const ordered = by("Cards (detail)").sort((a, b) => (ORDER[a.id]?.[0] ?? 9) - (ORDER[b.id]?.[0] ?? 9));
   const attention = cards.filter((c) => c.marks.includes("NEED YOU") || c.marks.includes("STALE?"));
   const floorNote = pct >= 100 ? "Above floor by " + money(h.banked - h.floor) : "Short " + money(h.floor - h.banked);
-  const bar = pct >= 100 ? "#d5e2cf" : "#e4c48a";
+  const bar = pct >= 100 ? "#9fd4e8" : "#c4b6e8";
   const when = esc(d.ledger_update || d.ledger_revised || "");
 
   const overview = `<section class="panel hero" id="overview" data-shift="0" data-nav>

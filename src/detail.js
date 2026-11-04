@@ -1,4 +1,7 @@
-/* Detail views for the decrypted book. Only fields the book already carries. */
+/* Detail views for the decrypted book. Only fields the book already carries.
+   Device notes, pins, and reviewed marks are stored beside the book, not inside it. */
+import { bindCharts, compositionHtml, sparkHtml } from "./charts.js";
+import { entryFor, formatReviewed, patchEntry } from "./desk.js";
 import { focusField, releaseField } from "./particles.js";
 
 export const ORDER = {
@@ -18,6 +21,19 @@ const SECTION_LABEL = {
   "Cash": "Cash",
   "Assets beyond cash": "Assets",
   "Loans": "Loans"
+};
+
+const MARK_HELP = {
+  "VERIFIED": "Checked against a source in the book.",
+  "STALE?": "The figure may be old.",
+  "NEED YOU": "The book is waiting on you.",
+  "HOLD": "Leave it. Do not act from this row.",
+  "GAP": "A gap is still open.",
+  "OK": "Marked ok in the book.",
+  "GROK": "Noted from a Grok pass.",
+  "APP": "Read from an app.",
+  "SMS": "Read from a message.",
+  "SCREENSHOT": "Taken from a screenshot."
 };
 
 const CARD_KNOWN = new Set(["section", "id", "name", "balance", "marks", "asof", "source", "prev", "lines", "status"]);
@@ -79,6 +95,37 @@ function tags(marks) {
   }).join("")}</div>`;
 }
 
+function markHelp(marks) {
+  if (!marks || !marks.length) return "";
+  const lines = marks.map((mark) => MARK_HELP[mark] ? `<li><b>${esc(mark)}</b> ${esc(MARK_HELP[mark])}</li>` : "").join("");
+  return lines ? `<ul class="mark-help">${lines}</ul>` : "";
+}
+
+export function deviceHtml(card, entry) {
+  const note = entry && entry.note ? entry.note : "";
+  const pin = !!(entry && entry.pin);
+  const reviewed = entry && entry.reviewed ? entry.reviewed : "";
+  const copy = typeof card.balance === "number" && Number.isFinite(card.balance) ? money(card.balance) : "";
+  const when = formatReviewed(reviewed);
+  const copyBtn = copy
+    ? `<button type="button" class="quiet-btn" data-act="copy" data-copy="${escAttr(copy)}">Copy balance</button>`
+    : `<button type="button" class="quiet-btn" data-act="copy" disabled>Copy balance</button>`;
+  return `<div class="device" data-device="${escAttr(card.id)}">
+    <p class="kicker">On this device</p>
+    <p class="meta">Saved in this browser only. It does not change the encrypted book.</p>
+    <label class="device-note"><span>Device note</span>
+      <textarea data-note rows="3" maxlength="2000" placeholder="A note for this device">${esc(note)}</textarea>
+    </label>
+    <div class="device-actions">
+      <button type="button" class="quiet-btn" data-act="save-note">Save note</button>
+      <button type="button" class="quiet-btn" data-act="pin" aria-pressed="${pin ? "true" : "false"}">${pin ? "Pinned" : "Pin"}</button>
+      ${copyBtn}
+      <button type="button" class="quiet-btn" data-act="reviewed" aria-pressed="${reviewed ? "true" : "false"}">${reviewed ? "Clear reviewed" : "Mark reviewed"}</button>
+    </div>
+    <p class="device-status" data-device-status>${when ? "Reviewed on this device · " + esc(when) : "Not reviewed on this device"}</p>
+  </div>`;
+}
+
 function notes(lines) {
   if (!lines || !lines.length) return "";
   return `<div class="notes"><p class="kicker">Notes</p>${lines.map((line) => `<p>${esc(line)}</p>`).join("")}</div>`;
@@ -116,6 +163,7 @@ function cardDetail(bookData, id) {
     <h2 id="detail-title">${esc(card.name)}</h2>
     <p class="figure${card.section === "Loans" ? " debt" : ""}">${card.balance == null ? '<span class="pending">see note</span>' : money(card.balance)}</p>
     ${tags(card.marks)}
+    ${markHelp(card.marks)}
     <div class="facts">
       ${fact("Id", card.id)}
       ${fact("Section", card.section)}
@@ -137,6 +185,7 @@ function metricDetail(bookData, which) {
     return `<p class="kicker">Stress</p>
       <h2 id="detail-title">${h.stress ?? "?"}</h2>
       <p class="meta">/1000 · lower better · goal &lt;400</p>
+      ${sparkHtml(history)}
       <div class="facts">
         ${fact("Score", h.stress == null ? "" : String(h.stress))}
         ${fact("Goal", "<400")}
@@ -165,6 +214,7 @@ function metricDetail(bookData, which) {
   if (which === "revolving") {
     return `<p class="kicker">Revolving total</p>
       <h2 id="detail-title" class="debt">${money(h.revolving)}</h2>
+      ${compositionHtml(bookData.cards || [])}
       <div class="facts">
         ${fact("Revolving", money(h.revolving))}
         ${fact("Built", bookData.built_pt)}
@@ -293,6 +343,112 @@ export function setBook(data) {
   book = data;
 }
 
+function compose(key) {
+  const inner = detailHtml(book, key);
+  if (!inner || !key.startsWith("card:")) return inner;
+  const card = (book.cards || []).find((c) => c.id === key.slice(5));
+  if (!card) return inner;
+  return inner + deviceHtml(card, entryFor(card.id));
+}
+
+function flash(box, message) {
+  const status = box.querySelector("[data-device-status]");
+  if (!status) return;
+  if (!status.dataset.restore) status.dataset.restore = status.textContent;
+  status.textContent = message;
+  clearTimeout(box._flash);
+  box._flash = setTimeout(() => {
+    status.textContent = status.dataset.restore || "";
+  }, 1600);
+}
+
+function paintDevice(box, entry) {
+  const pin = box.querySelector("[data-act='pin']");
+  if (pin) {
+    pin.setAttribute("aria-pressed", entry.pin ? "true" : "false");
+    pin.textContent = entry.pin ? "Pinned" : "Pin";
+  }
+  const reviewed = box.querySelector("[data-act='reviewed']");
+  if (reviewed) {
+    reviewed.setAttribute("aria-pressed", entry.reviewed ? "true" : "false");
+    reviewed.textContent = entry.reviewed ? "Clear reviewed" : "Mark reviewed";
+  }
+  const status = box.querySelector("[data-device-status]");
+  if (!status) return;
+  const when = formatReviewed(entry.reviewed);
+  const text = when ? "Reviewed on this device · " + when : "Not reviewed on this device";
+  status.textContent = text;
+  status.dataset.restore = text;
+}
+
+function saveNote(box, announce) {
+  if (!box) return;
+  const area = box.querySelector("[data-note]");
+  if (!area) return;
+  const id = box.getAttribute("data-device");
+  const text = area.value.slice(0, 2000);
+  const prev = entryFor(id);
+  if (prev.note === text) {
+    if (announce) flash(box, "Note saved on this device");
+    return;
+  }
+  patchEntry(id, { note: text });
+  flash(box, "Note saved on this device");
+}
+
+async function copyBalance(box) {
+  const button = box.querySelector("[data-act='copy']");
+  const text = button ? button.getAttribute("data-copy") || "" : "";
+  if (!text) return;
+  let ok = false;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    }
+  } catch (e) {
+    ok = false;
+  }
+  if (!ok) {
+    try {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.left = "-9999px";
+      document.body.appendChild(area);
+      area.select();
+      ok = document.execCommand("copy");
+      area.remove();
+    } catch (e) {
+      ok = false;
+    }
+  }
+  flash(box, ok ? "Copied " + text : "Couldn’t copy from this browser");
+}
+
+function runDeviceAct(act) {
+  const box = act.closest("[data-device]");
+  if (!box) return;
+  const id = box.getAttribute("data-device");
+  const kind = act.getAttribute("data-act");
+  if (kind === "save-note") {
+    saveNote(box, true);
+    return;
+  }
+  if (kind === "pin") {
+    const entry = entryFor(id);
+    paintDevice(box, patchEntry(id, { pin: !entry.pin }));
+    return;
+  }
+  if (kind === "reviewed") {
+    const entry = entryFor(id);
+    paintDevice(box, patchEntry(id, { reviewed: entry.reviewed ? "" : new Date().toISOString() }));
+    return;
+  }
+  if (kind === "copy") copyBalance(box);
+}
+
 function shell(inner) {
   return `<div class="detail-scrim" data-close></div>
     <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title">
@@ -352,6 +508,7 @@ function bindDrag(panel) {
   panel.addEventListener("pointerdown", (event) => {
     if (panel.scrollTop > 4) return;
     if (event.button != null && event.button !== 0) return;
+    if (event.target.closest("textarea, input, button, a, [data-chart]")) return;
     startY = event.clientY;
     startX = event.clientX;
     tracking = true;
@@ -385,7 +542,7 @@ function bindDrag(panel) {
 
 export function openDetail(key, fromEl) {
   if (!book) return;
-  const inner = detailHtml(book, key);
+  const inner = compose(key);
   if (!inner) return;
   const root = layer();
   if (!root) return;
@@ -406,6 +563,7 @@ export function openDetail(key, fromEl) {
   detailKey = key;
   sourceEl = fromEl || null;
   bindDrag(panel);
+  bindCharts(root);
   requestAnimationFrame(() => requestAnimationFrame(() => playOpen(panel, from)));
   const back = root.querySelector(".detail-back");
   if (back) back.focus({ preventScroll: true });
@@ -419,6 +577,7 @@ function swapDetail(key, inner) {
   focusField(focusSpec(book, key));
   if (reduceMotion()) {
     body.innerHTML = inner;
+    bindCharts(body);
     return;
   }
   const out = body.animate([
@@ -427,6 +586,7 @@ function swapDetail(key, inner) {
   ], { duration: 180, easing: "ease-in", fill: "forwards" });
   out.onfinish = () => {
     body.innerHTML = inner;
+    bindCharts(body);
     body.animate([
       { opacity: 0, transform: "translate3d(0, 22px, 0)" },
       { opacity: 1, transform: "translate3d(0, 0, 0)" }
@@ -475,6 +635,12 @@ export function bindDetail() {
       event.stopPropagation();
       return;
     }
+    const act = event.target.closest("[data-act]");
+    if (act && act.closest("#detail")) {
+      event.preventDefault();
+      runDeviceAct(act);
+      return;
+    }
     const closer = event.target.closest("[data-close]");
     if (closer && closer.closest("#detail")) {
       event.preventDefault();
@@ -492,6 +658,11 @@ export function bindDetail() {
       event.preventDefault();
       openDetail(tile.getAttribute("data-detail"), tile);
     }
+  });
+  document.addEventListener("focusout", (event) => {
+    const area = event.target.closest && event.target.closest("[data-note]");
+    if (!area || !area.closest("#detail")) return;
+    saveNote(area.closest("[data-device]"), false);
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && detailKey) {

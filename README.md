@@ -6,7 +6,13 @@ https://jpavia10.github.io/midas-ledger/
 
 Balances are AES-256-GCM. The key is PBKDF2-SHA256, 600k iterations, and it never leaves the device. Remembering on this device stores the raw AES key in `localStorage` under `midasKey`, tied to the salt. A new salt asks for the password again. No password and no plaintext ledger are stored in this repo.
 
-Open the book, then click an account, a headline figure, a written page, or a dock tile. The glass grows out of that item and the field leans into its shape. Back reverses the same motion.
+Open the book, then tap an account, a headline figure, a chart point, a written page, or a dock tile. The glass grows out of that item. On a phone the panel sits as a sheet. Back, Escape, or a downward drag closes it.
+
+The filter bar under the headline narrows accounts by section (Cash, Cards, Loans, Assets), by mark (Need you, Stale, Hold), by pin, and by name or id. Reset clears it.
+
+The stress spark scrubs by point. The gauge and the cash-versus-floor bar show the figure under the pointer. Card balances sit beside the revolving total, and a row opens that account. Every chart uses numbers from the decrypted book.
+
+Pin, a device note, copy balance, and reviewed live on the account panel. They are stored in `localStorage` under `midasDesk:` plus the vault salt. They do not rewrite the encrypted book. Lock & forget clears the remembered key (`midasKey`) and leaves these device notes in place.
 
 Back to the desk: https://jpavia10.github.io/prometheus-hub/
 

@@ -2,7 +2,10 @@
    localStorage "midasKey" is { salt, k } where k is the raw AES key (base64).
    A new salt asks for the password again. The password is never stored. */
 
+import { bindCharts, compositionHtml, sparkHtml } from "./charts.js";
+import { configureDesk, normalizeEntry, onDeskChange, readDesk } from "./desk.js";
 import { bindDetail, ORDER, setBook } from "./detail.js";
+import { applyAccountFilter, bindFilters, filterBarHtml, getFilter, paintFilter } from "./filter.js";
 
 const KEY_NAME = "midasKey";
 const WRONG = "That password didn't work. Try again 🙂";
@@ -93,26 +96,8 @@ function gauge(s) {
   </svg>`;
 }
 
-function spark(h) {
-  if (!h || h.length < 2) return "";
-  const W = 320;
-  const H = 70;
-  const mn = Math.min(...h.map((x) => x.score), 400) - 10;
-  const mx = Math.max(...h.map((x) => x.score)) + 10;
-  const pt = (v, i) => [(i / (h.length - 1)) * W, H - ((v - mn) / (mx - mn)) * H];
-  const d = h.map((x, i) => pt(x.score, i).map((n) => n.toFixed(1)).join(",")).join(" ");
-  const gy = pt(400, 0)[1];
-  const last = h.at(-1);
-  return `<svg viewBox="0 0 ${W} ${H + 14}" width="100%" role="img" aria-label="Stress history">
-    <line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="#9fd4e8" stroke-dasharray="4 4"/>
-    <polyline points="${d}" fill="none" stroke="#c9d7ea" stroke-width="2"/>
-    ${h.map((x, i) => {
-      const [px, py] = pt(x.score, i);
-      return `<circle cx="${px}" cy="${py}" r="2.5" fill="#e8eef8"><title>${escAttr(x.when)}: ${x.score}</title></circle>`;
-    }).join("")}
-    <text x="0" y="${H + 12}" fill="#c5d0de" font-size="9">${esc(h[0].when)} ${h[0].score}</text>
-    <text x="${W}" y="${H + 12}" fill="#c5d0de" font-size="9" text-anchor="end">${esc(last.when)} ${last.score}</text>
-  </svg>`;
+function accountAttrs(c) {
+  return `data-account data-section="${escAttr(c.section || "")}" data-id="${escAttr(c.id)}" data-name="${escAttr(c.name || "")}" data-marks="${escAttr((c.marks || []).join("|"))}"`;
 }
 
 function cardRow(c, extra = "") {
@@ -123,10 +108,10 @@ function cardRow(c, extra = "") {
   const from = c.source != "card" ? "· from " + esc(c.source) : "";
   const prev = c.prev != null ? " · card said " + money(c.prev) : "";
   const lines = c.balance == null || bad ? `<p class="note">${(c.lines || []).map(esc).join("<br>")}</p>` : "";
-  return `<article class="card opener ${cls}" ${opener("card:" + c.id)}>
+  return `<article class="card opener ${cls}" ${opener("card:" + c.id)} ${accountAttrs(c)}>
     <div class="row">
       <h3>${esc(c.name)} <span class="id">${esc(c.id)}</span>${extra}</h3>
-      <p class="figure">${figure}</p>
+      <p class="figure">${figure}<span class="go card-go" aria-hidden="true">→</span></p>
     </div>
     <div class="tags">${tags(c.marks)}</div>
     <p class="meta">${esc(c.asof || "")} ${from}${prev}</p>
@@ -163,31 +148,43 @@ export function ledgerHtml(d) {
     <div class="hero-copy overview-copy">
       <p class="kicker">Finance wing</p>
       <p class="lede">Built ${esc(d.built_pt)} · ledger: ${when}</p>
-      <article class="card metric opener" ${opener("metric:stress")}>
+    </div>
+  </section>`;
+
+  const metrics = `<section class="overview-metrics" aria-label="Headline">
+    <article class="card metric">
+      <button type="button" class="metric-hit" data-open="metric:stress" data-chart="gauge" data-score="${h.stress ?? ""}">
         ${gauge(h.stress)}
-        ${spark(d.history)}
-        <p class="meta">${d.history.length} points · dashed line = goal 400</p>
-      </article>
-      <div class="pair">
-        <article class="card metric opener" ${opener("metric:banked")}>
-          <div class="row">
-            <div>
-              <p class="kicker">Banked liquid</p>
-              <p class="figure">${money(h.banked)}</p>
-            </div>
-            <div class="floor">
-              <p class="kicker">Floor</p>
-              <p class="floor-num">${money(h.floor)}</p>
-            </div>
+        <p class="chart-tip gauge-tip" role="status" hidden></p>
+      </button>
+      ${sparkHtml(d.history)}
+      <p class="meta">${d.history.length} points · dashed line = goal 400</p>
+    </article>
+    <div class="pair">
+      <article class="card metric opener" ${opener("metric:banked")}>
+        <div class="row">
+          <div>
+            <p class="kicker">Banked liquid</p>
+            <p class="figure">${money(h.banked)}</p>
           </div>
+          <div class="floor">
+            <p class="kicker">Floor</p>
+            <p class="floor-num">${money(h.floor)}</p>
+          </div>
+        </div>
+        <div class="chart" data-chart="floor" data-banked="${h.banked ?? ""}" data-floor="${h.floor ?? ""}">
           <div class="bar" role="img" aria-label="${escAttr(floorNote)}"><i style="width:${pct}%;background:${bar}"></i></div>
-          <p class="meta">${floorNote}</p>
-        </article>
-        <article class="card metric opener" ${opener("metric:revolving")}>
+          <p class="chart-tip" role="status" hidden></p>
+        </div>
+        <p class="meta">${floorNote}</p>
+      </article>
+      <article class="card metric">
+        <button type="button" class="metric-hit" data-open="metric:revolving">
           <p class="kicker">Revolving total</p>
           <p class="figure debt">${money(h.revolving)}</p>
-        </article>
-      </div>
+        </button>
+        ${compositionHtml(ordered)}
+      </article>
     </div>
   </section>`;
 
@@ -197,8 +194,9 @@ export function ledgerHtml(d) {
     false,
     "Needs you / stale",
     "Attention",
-    attention.map((c) => `<article class="card opener ${c.marks.includes("NEED YOU") ? "alert" : "warnb"}" ${opener("card:" + c.id)}>
-      <h3>${esc(c.name)} ${tags(c.marks)}</h3>
+    attention.map((c) => `<article class="card opener ${c.marks.includes("NEED YOU") ? "alert" : "warnb"}" ${opener("card:" + c.id)} ${accountAttrs(c)}>
+      <h3>${esc(c.name)}</h3>
+      <div class="tags">${tags(c.marks)}</div>
       <p class="meta">${esc((c.lines && c.lines[0]) || c.status || "")}</p>
     </article>`).join("")
   ) : "";
@@ -252,7 +250,7 @@ export function ledgerHtml(d) {
     </div>
   </section>`;
 
-  return overview + attentionHtml + cardHtml + cashHtml + assetHtml + loanHtml + book;
+  return overview + filterBarHtml() + metrics + attentionHtml + cardHtml + cashHtml + assetHtml + loanHtml + book;
 }
 
 let navObserver = null;
@@ -276,6 +274,38 @@ export function bindNav() {
   panels.forEach((panel) => navObserver.observe(panel));
 }
 
+function applyDeskBadges(root, desk) {
+  const pinned = new Set();
+  root.querySelectorAll("[data-account]").forEach((el) => {
+    const id = el.getAttribute("data-id");
+    const entry = normalizeEntry(desk.cards[id]);
+    el.querySelectorAll(".device-tag").forEach((node) => node.remove());
+    const tags = el.querySelector(".tags");
+    if (!tags) return;
+    if (entry.pin) {
+      pinned.add(id);
+      tags.insertAdjacentHTML("beforeend", `<span class="tag device-tag pin">Pinned</span>`);
+    }
+    if (entry.note) tags.insertAdjacentHTML("beforeend", `<span class="tag device-tag">Note</span>`);
+    if (entry.reviewed) tags.insertAdjacentHTML("beforeend", `<span class="tag device-tag ok">Reviewed</span>`);
+  });
+  return pinned;
+}
+
+function refreshBook(root) {
+  const pinned = applyDeskBadges(root, readDesk());
+  const counts = applyAccountFilter(root, getFilter(), pinned);
+  paintFilter(root, getFilter(), counts);
+}
+
+function bindBook(root) {
+  bindDetail();
+  bindCharts(root);
+  bindFilters(root, () => refreshBook(root));
+  onDeskChange(() => refreshBook(root));
+  refreshBook(root);
+}
+
 function paintHtml(html, data) {
   setBook(data);
   const lock = document.getElementById("lock");
@@ -288,16 +318,19 @@ function paintHtml(html, data) {
   const brand = document.getElementById("brand");
   if (brand) brand.setAttribute("href", "#overview");
   bindNav();
+  bindBook(app);
   window.scrollTo(0, 0);
   const head = document.getElementById("overview-title");
   if (head) head.focus({ preventScroll: true });
 }
 
-export function presentBook(data) {
+export function presentBook(data, options = {}) {
+  if (options && options.salt) configureDesk(options.salt);
   paintHtml(ledgerHtml(data), data);
 }
 
 export function mountLedger(vault) {
+  configureDesk(vault && vault.salt);
   const form = document.getElementById("f");
   const err = document.getElementById("err");
   const button = form.querySelector("button");

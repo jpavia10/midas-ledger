@@ -49,7 +49,7 @@ test("ledger html keeps the book and escapes text", () => {
   assert.match(html, /\$100\.50/);
   assert.match(html, /\$1,200\.50/);
   assert.match(html, /Above floor by \$1,200\.00/);
-  assert.match(html, /#3de0ff/);
+  assert.match(html, /#9fe6c2/);   // v2: above the floor = the calm green bar
   assert.match(html, /380/);
   assert.match(html, /2 points · dashed line = goal 400/);
   assert.match(attention, /Alpha/);
@@ -98,7 +98,7 @@ test("detail view uses only the book's own fields", () => {
 test("short of the floor uses the warm bar", () => {
   const html = ledgerHtml(fixture(1000));
   assert.match(html, /Short \$2,000\.00/);
-  assert.match(html, /#ff2bd6/);
+  assert.match(html, /#f2b8a0/);   // v2: short of the floor = soft rose, never neon
 });
 
 test("round trip matches the remembered-key format", async () => {

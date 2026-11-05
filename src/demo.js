@@ -3,6 +3,7 @@
 export function demoBook() {
   return {
     built_pt: "2026-11-04 00:00 PT",
+    plan: { method: "avalanche", budget: 520 },
     ledger_update: "preview",
     headline: { stress: 462, banked: 1804, spendable: 842.16, floor: 3000, revolving: 2410.4 },
     history: [
@@ -15,11 +16,11 @@ export function demoBook() {
       { section: "Cash", id: "A3", name: "Everyday", balance: 642.16, available: 642.16, current: 1902.16, marks: ["VERIFIED"], asof: "2026-11-03", source: "plaid", prev: null, lines: ["available is spendable"], holds: [{ memo: "Valon ACH", amount: 400 }, { memo: "Citi ACH", amount: 25 }] },
       { section: "Cash", id: "A1", name: "Sink", balance: 200, available: 200, current: 260, marks: ["VERIFIED"], asof: "2026-11-03", source: "plaid", prev: null, lines: [] },
       { section: "Cash", id: "A9", name: "Old jar", balance: 9999, marks: ["STALE?"], asof: "2026-01-01", source: "note", prev: null, lines: ["do not spend this"] },
-      { section: "Cards (detail)", id: "L8", name: "Alpha card", balance: 640, marks: ["VERIFIED"], asof: "2026-11-01", source: "plaid", prev: null, lines: [] },
-      { section: "Cards (detail)", id: "L6", name: "Beta card", balance: 410.4, marks: ["VERIFIED"], asof: "2026-11-01", source: "plaid", prev: null, lines: [] },
-      { section: "Cards (detail)", id: "L10", name: "Gamma", balance: 220, marks: ["HOLD"], asof: "2026-10-02", source: "card", prev: null, lines: [] },
+      { section: "Cards (detail)", id: "L8", name: "Alpha card", balance: 640, marks: ["VERIFIED"], asof: "2026-11-01", source: "plaid", prev: null, lines: [], terms: { apr: 27.99, min_payment: 35, due_day: 14, credit_limit: 1000, asof: "2026-10-28" } },
+      { section: "Cards (detail)", id: "L6", name: "Beta card", balance: 410.4, marks: ["VERIFIED"], asof: "2026-11-01", source: "plaid", prev: null, lines: [], terms: { apr: 0, min_payment: 25, due_day: 3, credit_limit: 2000, promo_apr: 0, promo_end: "2027-03-31", asof: "2026-10-20" } },
+      { section: "Cards (detail)", id: "L10", name: "Gamma", balance: 220, marks: ["HOLD"], asof: "2026-10-02", source: "card", prev: null, lines: [], terms: { apr: 22.9, min_payment: 25, due_day: 21, credit_limit: 500, asof: "2026-10-02" } },
       { section: "Cards (detail)", id: "L4", name: "Store card", balance: null, marks: ["NEED YOU"], asof: "", source: "note", prev: 80, lines: ["statement missing"] },
-      { section: "Loans", id: "N1", name: "Truck", balance: 8400, marks: ["PAST DUE"], asof: "2026-08-01", source: "note", prev: null, lines: ["past due"] },
+      { section: "Loans", id: "N1", name: "Truck", balance: 8400, marks: ["PAST DUE"], asof: "2026-08-01", source: "note", prev: null, lines: ["past due"], terms: { apr: 9.5, min_payment: 285, due_day: 1, asof: "2026-08-01" } },
       { section: "Assets beyond cash", id: "A14", name: "House", balance: 12000, marks: ["HOLD"], asof: "", source: "note", prev: null, lines: ["never"] }
     ],
     sections: [

@@ -16,7 +16,7 @@
      "inputs": [],
      "steps": [
       "Make 12 made-up cases: 4 avalanche, 4 snowball, 4 'custom order'. Each has 2 to 6 debts (name, balance, APR %, minimum payment) and one monthly budget at least the sum of the minimums.",
-      "Rules, exactly: each month, interest = balance x APR / 12 / 100, rounded to the cent (half up); add it to the balance; pay every minimum (or the whole balance if smaller); the rest of the budget goes to the target debt (avalanche = highest APR, snowball = lowest balance, custom = the order you list); when a debt hits 0 its minimum joins the rest next month.",
+      "Rules, exactly: each month, interest = balance x APR / 12 / 100, rounded to the cent (half up); add it to the balance; pay every minimum (or the whole balance if smaller); the rest of the budget goes to the target debt (avalanche = highest APR, snowball = lowest balance, custom = the order you list); if the target is paid off with money left, the rest goes to the next target the same month; when a debt hits 0 its minimum joins the rest from the next month.",
       "Work every case month by month until every balance is 0.",
       "At least 3 cases must run longer than 36 months and at least 2 must have a debt paid off in the same month another target changes."
      ],
@@ -211,11 +211,11 @@
     {
      "id": "MID-GPT-01",
      "title": "Audit Midas v2 on the made-up book: 20 findings",
-     "state": "next",
+     "state": "now",
      "due": "2026-11-14",
      "why": "After Claude ships the new design, a second pair of eyes on it.",
      "inputs": [
-      "https://jpavia10.github.io/midas-ledger/ (password-protected: use the made-up book Claude links in the README once v2 is live)"
+      "https://jpavia10.github.io/midas-ledger/ shows the password screen; to see every screen with a made-up book, run it locally: python3 -m http.server 8742 in a checkout, then http://127.0.0.1:8742/?hud=1 (README, 'Pages')"
      ],
      "steps": [
       "Use every tab on a phone-sized screen.",
@@ -247,7 +247,7 @@
     {
      "id": "MID-CLA-01",
      "title": "Midas v2: a new design that makes the way out of debt visible",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-08",
      "why": "Joseph: 'that whole app needs a 100000 percent better design. Its embarrassing and not inspiring me to get out of debt.'",
      "inputs": [
@@ -272,7 +272,8 @@
      ],
      "rejected_if": [
       "a real balance in the repo"
-     ]
+     ],
+     "done_note": "Live 2026-11-05: the way out on Home, the Plan tab, the Prometheus look; the unlock restored (a merge on 11-04 had cut off the script tag)."
     }
    ]
   }

@@ -2,7 +2,7 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-05 02:32 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-05 02:52 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 ## 1. MID-GEM-01 · 12 debt payoff cases worked to the cent
 
@@ -12,7 +12,7 @@ Updated 2026-11-05 02:32 UTC · 3 open · Rules for every pillar: https://github
 
 **Do this:**
 1. Make 12 made-up cases: 4 avalanche, 4 snowball, 4 'custom order'. Each has 2 to 6 debts (name, balance, APR %, minimum payment) and one monthly budget at least the sum of the minimums.
-2. Rules, exactly: each month, interest = balance x APR / 12 / 100, rounded to the cent (half up); add it to the balance; pay every minimum (or the whole balance if smaller); the rest of the budget goes to the target debt (avalanche = highest APR, snowball = lowest balance, custom = the order you list); when a debt hits 0 its minimum joins the rest next month.
+2. Rules, exactly: each month, interest = balance x APR / 12 / 100, rounded to the cent (half up); add it to the balance; pay every minimum (or the whole balance if smaller); the rest of the budget goes to the target debt (avalanche = highest APR, snowball = lowest balance, custom = the order you list); if the target is paid off with money left, the rest goes to the next target the same month; when a debt hits 0 its minimum joins the rest from the next month.
 3. Work every case month by month until every balance is 0.
 4. At least 3 cases must run longer than 36 months and at least 2 must have a debt paid off in the same month another target changes.
 

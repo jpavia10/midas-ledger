@@ -242,6 +242,23 @@ class ContractTest(unittest.TestCase):
         self.assertEqual(book["cards"][0]["balance"], 420.50)
         self.assertEqual(book["headline"]["banked"], 420.50)
 
+    def test_terms_and_plan_lines_feed_the_payoff_planner(self):
+        md = """## Cards (detail)
+### L8 · Alpha — VERIFIED 2026-11-01
+- balance **$640.00**
+- terms: APR 27.99% · min $35 · due 14 · limit $1,000 · promo 0% to 2027-03-31 · as of 2026-10-28
+### L6 · Beta — VERIFIED 2026-11-01
+- balance **$410.40**
+## Notes
+- plan: order L8, L6
+- plan budget: $520
+"""
+        book = build.build_book(md, now="test")
+        alpha = next(c for c in book["cards"] if c["id"] == "L8")
+        self.assertEqual(alpha["terms"], {"apr": 27.99, "min_payment": 35, "due_day": 14, "credit_limit": 1000, "promo_apr": 0.0, "promo_end": "2027-03-31", "asof": "2026-10-28"})
+        self.assertNotIn("terms", next(c for c in book["cards"] if c["id"] == "L6"))
+        self.assertEqual(book["plan"], {"method": "custom", "order": ["L8", "L6"], "budget": 520})
+
     def test_refuses_plaintext_inside_repo(self):
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as handle:
             handle.write("## Cash\n")

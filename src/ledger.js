@@ -2,7 +2,8 @@
    localStorage "midasKey" is { salt, k } where k is the raw AES key (base64).
    A new salt asks for the password again. The password is never stored. */
 
-import { bindCharts, compositionHtml, CYAN, flowChartsHtml, MAGENTA, sparkHtml, spendableOf } from "./charts.js";
+import { bindPlan, homeHeroHtml, planHtml } from "./wayout.js";
+import { bindCharts, compositionHtml, CYAN, flowChartsHtml, ROSE, sparkHtml, spendableOf } from "./charts.js";
 import { configureDesk, normalizeEntry, onDeskChange, readDesk } from "./desk.js";
 import { bindDetail, ORDER, setBook } from "./detail.js";
 import { applyAccountFilter, bindFilters, filterBarHtml, getFilter, paintFilter } from "./filter.js";
@@ -83,7 +84,7 @@ function gauge(s) {
   const a = Math.PI * (1 - p);
   const x = 100 + 80 * Math.cos(a);
   const y = 100 - 80 * Math.sin(a);
-  const c = s < 400 ? CYAN : s < 550 ? "#c6ff4a" : MAGENTA;
+  const c = s < 400 ? "#9fe6c2" : s < 550 ? "#f0d29a" : ROSE;
   const g = Math.PI * (1 - 0.4);
   const gx = 100 + 80 * Math.cos(g);
   const gy = 100 - 80 * Math.sin(g);
@@ -91,8 +92,8 @@ function gauge(s) {
     <path d="M20 100A80 80 0 0 1 180 100" stroke="rgba(255,255,255,0.16)" stroke-width="14" fill="none" stroke-linecap="round"/>
     <path d="M20 100A80 80 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}" stroke="${c}" stroke-width="14" fill="none" stroke-linecap="round"/>
     <circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="3.5" fill="${CYAN}"/>
-    <text x="100" y="92" text-anchor="middle" fill="#f3fbff" font-size="34" font-weight="500" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">${s ?? "?"}</text>
-    <text x="100" y="110" text-anchor="middle" fill="#9eb4c4" font-size="9" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">/1000 · lower better · goal &lt;400</text>
+    <text x="100" y="92" text-anchor="middle" fill="#f4f7fb" font-size="34" font-weight="500" font-family="Outfit, sans-serif">${s ?? "?"}</text>
+    <text x="100" y="110" text-anchor="middle" fill="#b7c4d6" font-size="9" font-family="Outfit, sans-serif">/1000 · lower better · goal &lt;400</text>
   </svg>`;
 }
 
@@ -134,7 +135,7 @@ function ring(pct, color) {
   const circ = 2 * Math.PI * radius;
   const dash = Math.max(0, Math.min(1, (pct || 0) / 100)) * circ;
   return `<svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
-    <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(61,224,255,0.16)" stroke-width="8"/>
+    <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(159, 212, 230,0.16)" stroke-width="8"/>
     <circle cx="60" cy="60" r="${radius}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" transform="rotate(-90 60 60)"/>
   </svg>`;
 }
@@ -175,7 +176,7 @@ export function ledgerHtml(d) {
   const ordered = by("Cards (detail)").sort((a, b) => (ORDER[a.id]?.[0] ?? 9) - (ORDER[b.id]?.[0] ?? 9));
   const attention = cards.filter((c) => (c.marks || []).includes("NEED YOU") || (c.marks || []).includes("STALE?") || (c.marks || []).includes("PAST DUE"));
   const floorNote = have == null ? "" : (pct >= 100 ? "Above floor by " + money(have - floor) : "Short " + money(floor - have));
-  const bar = pct >= 100 ? CYAN : MAGENTA;
+  const bar = pct >= 100 ? "#9fe6c2" : ROSE;
   const when = esc(d.ledger_update || d.ledger_revised || "");
   const holds = (d.liquid && d.liquid.holds) || [];
   const holdHtml = holds.length ? `<ul class="holds">${holds.map((hold) => `<li><span class="id">${esc(hold.acct || "")}</span> ${esc(hold.memo || hold.name || "Hold")} <b class="num">${money(hold.amount)}</b></li>`).join("")}</ul>` : `<p class="meta">No holds on the spendable accounts.</p>`;
@@ -189,6 +190,7 @@ export function ledgerHtml(d) {
       <p class="kicker">Spendable · Plaid available</p>
       <p class="lede">Built ${esc(d.built_pt || "")} · ledger: ${when}</p>
     </div>
+    ${homeHeroHtml(d)}
     <article class="card metric glow-card opener" ${opener("metric:banked")}>
       <div class="spend-row">
         ${ring(pct, bar)}
@@ -300,6 +302,7 @@ export function ledgerHtml(d) {
     + `<div data-tab-panel="debt" hidden>${cardHtml}</div>`
     + `<div data-tab-panel="accounts" hidden>${cashHtml}${assetHtml}</div>`
     + `<div data-tab-panel="debt" hidden>${loanHtml}</div>`
+    + planHtml(d)
     + flow + book;
 }
 
@@ -370,6 +373,7 @@ function paintHtml(html, data) {
   bindNav();
   bindTabs();
   bindBook(app);
+  bindPlan(app, data);
   showTab("home");
   window.scrollTo(0, 0);
   const head = document.getElementById("overview-title");

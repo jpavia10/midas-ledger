@@ -6,7 +6,7 @@
   "scripts": {
     "build": "esbuild src/main.js --bundle --format=esm --outfile=midas.js --minify && node scripts/copy-fonts.mjs",
     "dev": "esbuild src/main.js --bundle --format=esm --outfile=midas.js --servedir=. --watch",
-    "check": "node --test test/ledger.test.mjs test/book.test.mjs test/flow.test.mjs test/vault.test.mjs && python3 -m unittest discover -s test -p 'test_build.py'"
+    "check": "node --test test/ledger.test.mjs test/plan.test.mjs test/book.test.mjs test/flow.test.mjs test/vault.test.mjs && python3 -m unittest discover -s test -p 'test_build.py'"
   },
   "devDependencies": {
     "@fontsource/outfit": "^5.3.0",

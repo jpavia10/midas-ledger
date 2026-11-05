@@ -1066,11 +1066,70 @@ def apply_spendable_headline(head, liquid):
     return head
 
 
+
+# ---- Midas v2 (2026-11-05): the terms line and the plan line (docs/BOOK_SCHEMA.md) ----
+_AMT = r"\$?\s*([0-9][0-9,]*(?:\.[0-9]+)?)"
+
+
+def parse_terms(line):
+    """'terms: APR 24.99% · min $95 · due 15 · limit $3,000 · promo 0% to 2027-03-31 · as of 2026-10-28' -> dict."""
+    body = re.sub(r"^\s*terms:\s*", "", line, flags=re.I)
+    out = {}
+    for part in [p.strip() for p in re.split(r"·|\|", body) if p.strip()]:
+        low = part.lower()
+        m = re.match(r"apr\s*([0-9.]+)\s*%?", low)
+        if m:
+            out["apr"] = float(m.group(1)); continue
+        m = re.match(r"min(?:imum)?\s*" + _AMT, low)
+        if m:
+            out["min_payment"] = num(m.group(1)); continue
+        m = re.match(r"due\s*(?:day\s*)?([0-9]{1,2})\b", low)
+        if m and 1 <= int(m.group(1)) <= 31:
+            out["due_day"] = int(m.group(1)); continue
+        m = re.match(r"limit\s*" + _AMT, low)
+        if m:
+            out["credit_limit"] = num(m.group(1)); continue
+        m = re.match(r"promo\s*([0-9.]+)\s*%?\s*(?:to|until)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", low)
+        if m:
+            out["promo_apr"] = float(m.group(1)); out["promo_end"] = m.group(2); continue
+        m = re.match(r"as of\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", low)
+        if m:
+            out["asof"] = m.group(1); continue
+    return out
+
+
+def apply_terms(cards):
+    for c in cards:
+        for ln in c.get("lines") or []:
+            if re.match(r"^\s*terms:", ln, re.I):
+                t = parse_terms(ln)
+                if t:
+                    c["terms"] = t
+                break
+    return cards
+
+
+def parse_plan(md):
+    """'- plan: avalanche' | '- plan: snowball' | '- plan: order L8, L6, N1' and '- plan budget: $900' anywhere in the ledger."""
+    plan = {}
+    m = re.search(r"^\s*-\s*plan:\s*(.+)$", md or "", re.M | re.I)
+    if m:
+        v = m.group(1).strip()
+        if v.lower().startswith("order"):
+            plan["method"] = "custom"
+            plan["order"] = [x.strip() for x in re.split(r"[,\s]+", v[5:]) if x.strip()]
+        elif v.lower() in ("avalanche", "snowball"):
+            plan["method"] = v.lower()
+    m = re.search(r"^\s*-\s*plan budget:\s*" + _AMT, md or "", re.M | re.I)
+    if m:
+        plan["budget"] = num(m.group(1))
+    return plan or None
+
 def build_book(md, rollup=None, sidecar=None, now=None):
     md = md or ""
     lines = md.splitlines()
     sections = split_sections(md)
-    cards = parse_cards(lines)
+    cards = apply_terms(parse_cards(lines))
     log = parse_log(lines)
     overlay_src = apply_overlay(cards, log)
     head = parse_headline(md, log)
@@ -1127,6 +1186,9 @@ def build_book(md, rollup=None, sidecar=None, now=None):
         "networth": networth,
         "stale": stale_rows(cards),
     }
+    plan = parse_plan(md)
+    if plan:
+        book["plan"] = plan
     return book
 
 

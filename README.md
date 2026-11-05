@@ -1,6 +1,6 @@
 # Midas Ledger
 
-Night HUD for the finance wing of Prometheus Hub. Near-black field, cyan / magenta / lime type, and a phone tab bar: Home, Flow, Accounts, Debt, Book. The book stays encrypted in the browser.
+The finance wing of Prometheus Hub, in the Prometheus look (cool midnight, pearl type, Midas gold as the one warm light; v2, 2026-11-05, replaced the neon HUD). Home leads with **the way out**: the debt-free month, the months and interest left at your monthly budget, and how much you have paid down since the starting line this device saw. **Plan** compares avalanche, snowball, your own order and minimums only, with a budget slider and what $100 more a month changes. Tab bar: Home, Flow, Accounts, Plan, Debt, Book. The book stays encrypted in the browser.
 
 https://jpavia10.github.io/midas-ledger/
 
@@ -31,6 +31,10 @@ python3 -m http.server 8742
 ```
 
 `http://127.0.0.1:8742/?hud=1` opens a fictional book so the HUD can be reviewed without the password. That flag only works on localhost. The published site still asks for the password.
+
+## The payoff planner
+
+`src/plan.js` (tested in `test/plan.test.mjs` against cases worked by hand): each month interest = balance x APR / 12 / 100, rounded to the cent and added; every minimum is paid; the rest goes to the target (avalanche = highest APR, snowball = lowest balance, custom = your order), and money left after a target is paid off goes to the next one the same month. It needs each card's and loan's terms in the book: one `- terms:` line under the card and optional `- plan:` / `- plan budget:` lines (`docs/BOOK_SCHEMA.md`). A debt without terms is listed as "terms missing" and left out of the date.
 
 ## Updating the encrypted book
 

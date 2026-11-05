@@ -23,7 +23,7 @@ export function startField(canvas) {
     ctx.clearRect(0, 0, w, h);
     const gap = 56;
     const drift = reduce ? 0 : (time / 90) % gap;
-    ctx.strokeStyle = "rgba(61, 224, 255, 0.13)";
+    ctx.strokeStyle = "rgba(159, 212, 230, 0.13)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let x = -gap + drift; x < w + gap; x += gap) {
@@ -36,8 +36,8 @@ export function startField(canvas) {
     }
     ctx.stroke();
     const glow = ctx.createRadialGradient(w * 0.5, h * 0.18, 8, w * 0.5, h * 0.18, Math.max(w, h) * 0.55);
-    glow.addColorStop(0, "rgba(255, 43, 214, 0.10)");
-    glow.addColorStop(0.45, "rgba(61, 224, 255, 0.04)");
+    glow.addColorStop(0, "rgba(233, 215, 168, 0.10)");
+    glow.addColorStop(0.45, "rgba(159, 212, 230, 0.04)");
     glow.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, w, h);

@@ -1,10 +1,11 @@
 /* Charts drawn from decrypted numbers only. */
 
-export const CYAN = "#3de0ff";
-export const MAGENTA = "#ff2bd6";
-export const LIME = "#c6ff4a";
-const VIOLET = "#b388ff";
-const AMBER = "#ffb020";
+export const CYAN = "#9fd4e6";
+export const MAGENTA = "#e9d7a8";   // v2: Midas gold (it was neon magenta)
+export const ROSE = "#f2b8a0";      // v2: money going out / short of the floor, soft, never alarm red
+export const LIME = "#9fe6c2";
+const VIOLET = "#c9b8ea";
+const AMBER = "#f0d29a";
 const SERIES = [CYAN, MAGENTA, LIME, VIOLET, AMBER];
 
 function money(n) {
@@ -67,8 +68,8 @@ export function sparkHtml(history) {
         const label = escAttr(x.when) + ": " + x.score;
         return `<circle class="spark-hit" cx="${px}" cy="${py}" r="12" fill="transparent" tabindex="0" role="button" data-open="history:${i}" data-score="${escAttr(x.score)}" data-when="${escAttr(x.when)}" aria-label="${label}"></circle><circle class="spark-dot" cx="${px}" cy="${py}" r="2.5" fill="#f4fbff" pointer-events="none"><title>${label}</title></circle>`;
       }).join("")}
-      <text x="0" y="${H + 12}" fill="#9eb4c4" font-size="9" font-family="ui-monospace, monospace">${esc(h[0].when)} ${h[0].score}</text>
-      <text x="${W}" y="${H + 12}" fill="#9eb4c4" font-size="9" font-family="ui-monospace, monospace" text-anchor="end">${esc(last.when)} ${last.score}</text>
+      <text x="0" y="${H + 12}" fill="#b7c4d6" font-size="9" font-family="ui-monospace, monospace">${esc(h[0].when)} ${h[0].score}</text>
+      <text x="${W}" y="${H + 12}" fill="#b7c4d6" font-size="9" font-family="ui-monospace, monospace" text-anchor="end">${esc(last.when)} ${last.score}</text>
     </svg>
   </div>`;
 }
@@ -129,8 +130,8 @@ function flowSvg(rows) {
     const x0 = cx - 14;
     if (row.net != null) points.push(cx.toFixed(1) + "," + netY(row.net).toFixed(1));
     return `<rect x="${x0.toFixed(1)}" y="${(base - hIn).toFixed(1)}" width="12" height="${hIn.toFixed(1)}" fill="${CYAN}" rx="2"><title>${esc(row.label)} in ${money(row.income)}</title></rect>
-      <rect x="${(x0 + 14).toFixed(1)}" y="${(base - hOut).toFixed(1)}" width="12" height="${hOut.toFixed(1)}" fill="${MAGENTA}" rx="2"><title>${esc(row.label)} out ${money(row.spend)}</title></rect>
-      <text x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle" fill="#9eb4c4" font-size="10" font-family="ui-monospace, monospace">${esc(row.label)}${row.stub ? "*" : ""}</text>`;
+      <rect x="${(x0 + 14).toFixed(1)}" y="${(base - hOut).toFixed(1)}" width="12" height="${hOut.toFixed(1)}" fill="${ROSE}" rx="2"><title>${esc(row.label)} out ${money(row.spend)}</title></rect>
+      <text x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle" fill="#b7c4d6" font-size="10" font-family="ui-monospace, monospace">${esc(row.label)}${row.stub ? "*" : ""}</text>`;
   }).join("");
   const zero = netY(0);
   const line = points.length > 1 ? `<polyline points="${points.join(" ")}" fill="none" stroke="${LIME}" stroke-width="2"/>` : "";
@@ -140,7 +141,7 @@ function flowSvg(rows) {
     return `<circle cx="${cx.toFixed(1)}" cy="${netY(row.net).toFixed(1)}" r="3" fill="${LIME}"><title>${esc(row.label)} net ${money(row.net)}</title></circle>`;
   }).join("");
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Income versus spend, net line">
-    <line x1="${pad}" x2="${W - 8}" y1="${zero.toFixed(1)}" y2="${zero.toFixed(1)}" stroke="rgba(198,255,74,0.35)" stroke-dasharray="3 3"/>
+    <line x1="${pad}" x2="${W - 8}" y1="${zero.toFixed(1)}" y2="${zero.toFixed(1)}" stroke="rgba(159, 230, 194,0.35)" stroke-dasharray="3 3"/>
     ${bars}${line}${dots}
   </svg>`;
 }
@@ -197,7 +198,7 @@ function utilitySvg(book) {
       y -= h;
       return `<rect x="${(cx - 10).toFixed(1)}" y="${y.toFixed(1)}" width="20" height="${h.toFixed(1)}" fill="${SERIES[n % SERIES.length]}"><title>${esc(names[id] || id)} ${money(amount)}</title></rect>`;
     }).join("");
-    return segs + `<text x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle" fill="#9eb4c4" font-size="10" font-family="ui-monospace, monospace">${esc(month.label || month.id || "")}</text>`;
+    return segs + `<text x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle" fill="#b7c4d6" font-size="10" font-family="ui-monospace, monospace">${esc(month.label || month.id || "")}</text>`;
   }).join("");
   const line = months.map((month, i) => {
     const cx = pad + slot * i + slot / 2;
@@ -288,7 +289,7 @@ export function flowChartsHtml(book) {
   const rows = flowRows(book);
   const flow = rows.length ? `<article class="card metric">
       <p class="kicker">Income vs spend</p>
-      <div class="legend-row"><span class="legend"><i style="background:${CYAN}"></i>In</span><span class="legend"><i style="background:${MAGENTA}"></i>Out</span><span class="legend"><i style="background:${LIME}"></i>Net</span></div>
+      <div class="legend-row"><span class="legend"><i style="background:${CYAN}"></i>In</span><span class="legend"><i style="background:${ROSE}"></i>Out</span><span class="legend"><i style="background:${LIME}"></i>Net</span></div>
       ${flowSvg(rows)}
       <ul class="mini">${rows.map((row) => `<li data-flow-month="${escAttr(row.id)}" data-flow-income="${escAttr(row.income)}" data-flow-spend="${escAttr(row.spend)}" data-flow-net="${row.net == null ? "" : escAttr(row.net)}"><span>${esc(row.label)}</span> <b class="num">${row.net == null ? "—" : esc(money(row.net))}</b></li>`).join("")}</ul>
     </article>` : `<article class="card metric"><p class="kicker">Income vs spend</p><p class="meta">Cash flow shows up when the book is rebuilt with a Plaid rollup or a Cash flow page.</p></article>`;

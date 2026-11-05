@@ -2,7 +2,7 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-05 02:26 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-05 02:32 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 ## 1. MID-GEM-01 · 12 debt payoff cases worked to the cent
 
@@ -17,7 +17,9 @@ Updated 2026-11-05 02:26 UTC · 3 open · Rules for every pillar: https://github
 4. At least 3 cases must run longer than 36 months and at least 2 must have a debt paid off in the same month another target changes.
 
 **Make:** `midas_gemini_payoff-cases_{YYYYMMDD-HHMM}.json`
+
 **Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
 **Shape:** `[{"case":1,"method":"avalanche","budget":900,"debts":[{"name":"Card A","balance":4210.55,"apr":24.99,"min":95}],"months":[{"m":1,"interest":{"Card A":87.68},"paid":{"Card A":900},"balance":{"Card A":3398.23}}],"payoff_month":{"Card A":6},"total_interest":312.40}] (12 objects)`
 
 **How many:** 12
@@ -48,7 +50,9 @@ Updated 2026-11-05 02:26 UTC · 3 open · Rules for every pillar: https://github
 3. Quote the abstract sentence the finding comes from, word for word.
 
 **Make:** `midas_gemini_debt-research_{YYYYMMDD-HHMM}.json`
+
 **Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
 **Shape:** `[{"n":1,"citation":"Gal, D. & McShane, B. (2012) ...","doi":"10....","finding":"...","quote":"exact sentence from the abstract","midas":"show ..."}] (20 objects)`
 
 **How many:** 20
@@ -79,7 +83,9 @@ Updated 2026-11-05 02:26 UTC · 3 open · Rules for every pillar: https://github
 3. Each row: app, the screen it is on, what it does, a URL where it can be seen (a screenshot page, help article or store listing), and how Midas could do it better.
 
 **Make:** `midas_gemini_app-teardown_{YYYYMMDD-HHMM}.json`
+
 **Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
 **Shape:** `[{"app":"YNAB","screen":"...","move":"...","url":"https://...","midas":"..."}] (75 objects)`
 
 **How many:** 75

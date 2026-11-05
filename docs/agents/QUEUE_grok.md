@@ -2,7 +2,7 @@
 
 # Midas Ledger · homework for Grok
 
-Updated 2026-11-05 02:26 UTC · 2 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Grok/HOMEWORK — Grok (every pillar)'.
+Updated 2026-11-05 02:32 UTC · 2 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Grok/HOMEWORK — Grok (every pillar)'.
 
 ## 1. MID-GRK-01 · Give every debt in the book its APR, minimum, due day, limit and promo end
 
@@ -20,7 +20,9 @@ Updated 2026-11-05 02:26 UTC · 2 open · Rules for every pillar: https://github
 3. Rebuild and encrypt the book with publish.sh as you do now; the plaintext never goes to Drive, Discord or GitHub.
 
 **Make:** `the encrypted book (index.html #vault) via publish.sh`
+
 **Save in:** jpavia10/midas-ledger, a branch grok/... and a pull request
+
 **Shape:** `docs/BOOK_SCHEMA.md section 'debts'`
 
 **How many:** 1
@@ -50,7 +52,9 @@ Updated 2026-11-05 02:26 UTC · 2 open · Rules for every pillar: https://github
 2. Add one log line saying what changed (counts only, no amounts).
 
 **Make:** `the encrypted book`
+
 **Save in:** jpavia10/midas-ledger
+
 **Shape:** `as now`
 
 **How many:** 1

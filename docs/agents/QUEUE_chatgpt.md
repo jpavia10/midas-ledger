@@ -2,7 +2,7 @@
 
 # Midas Ledger · homework for ChatGPT
 
-Updated 2026-11-05 02:26 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/ChatGPT/HOMEWORK — ChatGPT (every pillar)'.
+Updated 2026-11-05 02:32 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/ChatGPT/HOMEWORK — ChatGPT (every pillar)'.
 
 ## 1. MID-GPT-01 · Audit Midas v2 on the made-up book: 20 findings
 
@@ -18,7 +18,9 @@ Updated 2026-11-05 02:26 UTC · 1 open · Rules for every pillar: https://github
 2. 20 findings: where / what is wrong / fix / severity 1-3; at least 6 about whether it makes you want to pay debt down.
 
 **Make:** `midas_chatgpt_audit_{YYYYMMDD-HHMM}.md`
+
 **Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
 **Shape:** `numbered list, 20 items`
 
 **How many:** 20

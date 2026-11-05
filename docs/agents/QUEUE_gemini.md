@@ -2,7 +2,7 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-05 02:52 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-05 14:55 UTC · 8 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 ## 1. MID-GEM-01 · 12 debt payoff cases worked to the cent
 
@@ -102,3 +102,164 @@ Updated 2026-11-05 02:52 UTC · 3 open · Rules for every pillar: https://github
 - fewer items than the count
 - a file saved anywhere but the folder named here, or under another name
 - two rows that say the same thing about one app
+
+## 4. MID-GEM-04 · Minimum payment formulas of 25 US card issuers, quoted from their cardholder agreements
+
+**Due:** 2026-11-12 · **State:** now
+
+**Why:** Midas's payoff engine (src/plan.js) keeps each minimum fixed; real minimums fall as the balance falls. The engine needs each issuer's real formula.
+
+**Do this:**
+1. Take the 25 largest US card issuers (Chase, American Express, Citi, Capital One, Bank of America, Discover, Synchrony, Wells Fargo, U.S. Bank, Barclays, Goldman Sachs/Apple Card, PNC, TD Bank, Navy Federal, USAA, Truist, Credit One, Comenity/Bread, Fifth Third, Citizens, Huntington, Regions, KeyBank, BMO, First National).
+2. From each one's own cardholder agreement or pricing page, copy the minimum payment rule: the percent of balance, what is added (interest, fees, past due), the dollar floor, and when the whole balance is due instead.
+3. Write the rule as a formula over balance B, interest I, fees F: e.g. max(35, 0.01*B + I + F), or B when B < 35.
+
+**Make:** `midas_gemini_minimums_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
+**Shape:** `[{"n":1,"issuer":"...","product":"the card or card family the agreement covers","formula":"max(40, 0.01*B + I + F)","floor_usd":40,"pct_of_balance":1,"adds":["interest","fees"],"url":"https://...","quote":"..."}]`
+
+**How many:** 25
+
+**Done when:** 25 issuers, each formula traceable to the quoted agreement text.
+
+**How Claude checks it:**
+- Claude opens 10 agreements at random and recomputes the formula from the quote.
+- Claude runs each formula on B=5000, I=80, F=0 and on B=20.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field of the shape
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name
+- a formula from a blog or a calculator site instead of the issuer's own agreement
+- anything about Joseph's own accounts, balances, mail, messages or trades (public facts only)
+
+## 5. MID-GEM-05 · How 25 issuers compute interest: balance method, day count, compounding, grace
+
+**Due:** 2026-11-13 · **State:** now
+
+**Why:** Midas computes balance x APR / 12. Real cards compound daily on an average daily balance; the gap matters on large balances.
+
+**Do this:**
+1. For the same 25 issuers as MID-GEM-04: from the agreement's 'How we calculate your balance / interest' section copy the balance method (e.g. average daily balance including new transactions), the daily periodic rate (APR/365 or /360), whether interest compounds daily, the grace period in days and the minimum interest charge.
+
+**Make:** `midas_gemini_interest_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
+**Shape:** `[{"n":1,"issuer":"...","method":"average daily balance (including new transactions)","day_count":365,"daily_compounding":true,"grace_days":25,"min_interest_usd":1.0,"url":"https://...","quote":"..."}]`
+
+**How many:** 25
+
+**Done when:** 25 rows, every field quoted or marked null with the reason in quote.
+
+**How Claude checks it:**
+- Claude opens 10 at random.
+- day_count must be 360 or 365; grace_days a whole number.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field of the shape
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name
+- anything about Joseph's own accounts, balances, mail, messages or trades (public facts only)
+
+## 6. MID-GEM-06 · 20 promo-rate products: deferred interest or true 0 %, quoted
+
+**Due:** 2026-11-14 · **State:** now
+
+**Why:** Midas shows promo rates but does not model them; a deferred-interest promo charges all the back interest if not paid off in time.
+
+**Do this:**
+1. Pick 20 products a US consumer meets: 10 store cards (Synchrony / Comenity / TD retail cards), 5 buy-now-pay-later (Affirm, Klarna, Afterpay, PayPal Pay Later, Zip), 5 balance-transfer cards.
+2. From each product's own terms page: promo type (deferred interest or 0 % intro APR), promo length, what happens when it ends, the go-to APR, the fee.
+
+**Make:** `midas_gemini_promos_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
+**Shape:** `[{"n":1,"product":"...","issuer":"...","type":"deferred","months":12,"at_end":"interest from the purchase date on the whole amount","go_to_apr":29.99,"fee":"none","url":"https://...","quote":"...","seen":"2026-11-14"}]`
+
+**How many:** 20
+
+**Done when:** 20 products, each type quoted from its own terms.
+
+**How Claude checks it:**
+- Claude opens every URL.
+- type must be deferred or zero_intro, never both.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field of the shape
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name
+- anything about Joseph's own accounts, balances, mail, messages or trades (public facts only)
+
+## 7. MID-GEM-07 · 25 hardship programs: what each lender offers and how to ask
+
+**Due:** 2026-11-15 · **State:** now
+
+**Why:** The way out of debt is faster with a lower APR. Many issuers have hardship or APR-reduction programs; Joseph should know what to ask for.
+
+**Do this:**
+1. For 25 lenders (the 25 issuers above; swap in Discover Personal Loans, SoFi, LendingClub, Upstart for any with no public page): the program name, what it offers (APR cut, fee waiver, fixed payment plan, months), who qualifies, the phone path or web page to ask, and what it does to the account (closed, frozen, reported).
+2. Quote the issuer's own page; when only the CFPB or a state regulator documents it, cite that page.
+
+**Make:** `midas_gemini_hardship_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
+**Shape:** `[{"n":1,"lender":"...","program":"...","offers":"APR lowered to 9.99 % for 12 months","qualifies":"...","how_to_ask":"call the number on the back of the card, ask for the hardship team","account_effect":"card frozen during the plan","url":"https://...","quote":"..."}]`
+
+**How many:** 25
+
+**Done when:** 25 rows, every offer quoted.
+
+**How Claude checks it:**
+- Claude opens 10 at random.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field of the shape
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name
+- a debt-settlement company's sales page as the source
+- anything about Joseph's own accounts, balances, mail, messages or trades (public facts only)
+
+## 8. MID-GEM-08 · 12 daily-compounding interest cases worked to the cent
+
+**Due:** 2026-11-16 · **State:** now
+
+**Why:** Before Midas switches to daily interest (MID-GEM-05), Claude needs cases worked by hand to test it against.
+
+**Do this:**
+1. Make 12 cases with balances between 500 and 25,000, APRs between 9.99 and 29.99, three 30-day cycles each, one payment per cycle on day 20 (amount of your choice), no new purchases.
+2. Daily periodic rate = APR / 365 / 100; interest accrues on the day's balance and is added at the end of each cycle (state whether it compounds daily or monthly; do both for cases 1-3).
+3. Write every cycle: start balance, sum of daily balances, average daily balance, interest (rounded half up to the cent), payment, end balance.
+
+**Make:** `midas_gemini_dailycases_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
+**Shape:** `[{"case":1,"balance":5000.00,"apr":24.99,"payment_day":20,"payments":[200,200,200],"compounding":"monthly","cycles":[{"start":5000.00,"sum_daily":147800.00,"adb":4926.67,"interest":101.19,"payment":200.00,"end":4901.19}]}] (days 1-19 at 5000.00, days 20-30 at 4800.00)`
+
+**How many:** 12
+
+**Done when:** 12 cases x 3 cycles; Claude recomputes every number in Python.
+
+**How Claude checks it:**
+- A cycle off by more than 1 cent = the case fails; 2 failing cases = the file is sent back.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field of the shape
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name
+- numbers copied from an online calculator without the cycle rows

@@ -1,0 +1,280 @@
+{
+ "about": "Homework for this pillar, one list per AI (Claude writes it; tools/kit/render.py in jpavia10/prometheus-hub turns it into docs/agents/QUEUE_{ai}.md and the Drive docs). Every task says exactly what to read, what to make, how many, where to save it, how Claude checks it and what makes it not done. A task is done only when the file passes the checks, never because it was sent.",
+ "updated": "2026-11-05",
+ "pillar": "midas",
+ "agents": [
+  {
+   "id": "gemini",
+   "name": "Gemini",
+   "tasks": [
+    {
+     "id": "MID-GEM-01",
+     "title": "12 debt payoff cases worked to the cent",
+     "state": "now",
+     "due": "2026-11-09",
+     "why": "Midas is getting a payoff planner (avalanche, snowball and Joseph's own order). Claude checks its engine against cases worked by someone else. No real balances: every case is made up.",
+     "inputs": [],
+     "steps": [
+      "Make 12 made-up cases: 4 avalanche, 4 snowball, 4 'custom order'. Each has 2 to 6 debts (name, balance, APR %, minimum payment) and one monthly budget at least the sum of the minimums.",
+      "Rules, exactly: each month, interest = balance x APR / 12 / 100, rounded to the cent (half up); add it to the balance; pay every minimum (or the whole balance if smaller); the rest of the budget goes to the target debt (avalanche = highest APR, snowball = lowest balance, custom = the order you list); when a debt hits 0 its minimum joins the rest next month.",
+      "Work every case month by month until every balance is 0.",
+      "At least 3 cases must run longer than 36 months and at least 2 must have a debt paid off in the same month another target changes."
+     ],
+     "deliver": {
+      "file": "midas_gemini_payoff-cases_{YYYYMMDD-HHMM}.json",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "[{\"case\":1,\"method\":\"avalanche\",\"budget\":900,\"debts\":[{\"name\":\"Card A\",\"balance\":4210.55,\"apr\":24.99,\"min\":95}],\"months\":[{\"m\":1,\"interest\":{\"Card A\":87.68},\"paid\":{\"Card A\":900},\"balance\":{\"Card A\":3398.23}}],\"payoff_month\":{\"Card A\":6},\"total_interest\":312.40}] (12 objects)"
+     },
+     "count": 12,
+     "done_when": "12 cases, every month listed, and Claude's engine gets the same balance for every debt in every month.",
+     "checks": [
+      "Claude runs all 12 cases through its own engine; a balance more than $0.01 off in any month makes that case wrong.",
+      "Claude checks the 36-month and same-month conditions."
+     ],
+     "rejected_if": [
+      "a case whose months stop before every balance is 0",
+      "a month that does not follow the rules above",
+      "fewer than 12 cases"
+     ]
+    },
+    {
+     "id": "MID-GEM-02",
+     "title": "20 research findings on what really helps people pay off debt, each with its DOI",
+     "state": "now",
+     "due": "2026-11-10",
+     "why": "Joseph: the app must inspire him to get out of debt. Claude designs from evidence, not slogans.",
+     "inputs": [
+      "Google Scholar, journal pages, NBER, Federal Reserve, CFPB (no blogs, no listicles, no AI summaries)"
+     ],
+     "steps": [
+      "Find 20 different published studies or official reports about paying down debt, motivation, small wins, framing, mental accounting, or progress feedback.",
+      "For each: full citation, DOI or official URL, the one finding in one sentence with its number (effect size, percent or dollars), and one concrete thing Midas should show because of it (a screen element, not advice).",
+      "Quote the abstract sentence the finding comes from, word for word."
+     ],
+     "deliver": {
+      "file": "midas_gemini_debt-research_{YYYYMMDD-HHMM}.json",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "[{\"n\":1,\"citation\":\"Gal, D. & McShane, B. (2012) ...\",\"doi\":\"10....\",\"finding\":\"...\",\"quote\":\"exact sentence from the abstract\",\"midas\":\"show ...\"}] (20 objects)"
+     },
+     "count": 20,
+     "done_when": "20 real studies, every DOI resolves to that paper, every quote is in its abstract.",
+     "checks": [
+      "Claude resolves all 20 DOIs and searches each quote in the abstract.",
+      "One invented paper or invented quote = the whole file is rejected."
+     ],
+     "rejected_if": [
+      "any paper that does not exist",
+      "a quote that is not word for word",
+      "a blog or news article in place of a study"
+     ]
+    },
+    {
+     "id": "MID-GEM-03",
+     "title": "15 money apps taken apart: 75 things that make people keep going",
+     "state": "now",
+     "due": "2026-11-11",
+     "why": "Midas looked 'neon' and uninspiring. Claude wants the specific moves the best apps use.",
+     "inputs": [
+      "the apps' own sites, help centres, App Store pages and press kits"
+     ],
+     "steps": [
+      "Apps: YNAB, Monarch Money, Copilot Money, Rocket Money, Undebt.it, Debt Payoff Planner, EveryDollar, Simplifi, Empower, Lunch Money, Actual Budget, Goodbudget, Origin, PocketGuard, Tiller.",
+      "For each app, 5 specific things on its screens that make you want to keep paying down or keep checking in (example: 'debt-free date shown under the total and it moves when you add a payment').",
+      "Each row: app, the screen it is on, what it does, a URL where it can be seen (a screenshot page, help article or store listing), and how Midas could do it better."
+     ],
+     "deliver": {
+      "file": "midas_gemini_app-teardown_{YYYYMMDD-HHMM}.json",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "[{\"app\":\"YNAB\",\"screen\":\"...\",\"move\":\"...\",\"url\":\"https://...\",\"midas\":\"...\"}] (75 objects)"
+     },
+     "count": 75,
+     "done_when": "75 rows, 5 per app, every URL shows what the row says.",
+     "checks": [
+      "Claude opens 15 URLs at random.",
+      "Rows that only praise ('beautiful design') do not count."
+     ],
+     "rejected_if": [
+      "a row copied from another row with the names changed",
+      "a source URL that does not open or does not say what the row claims",
+      "fewer items than the count",
+      "a file saved anywhere but the folder named here, or under another name",
+      "two rows that say the same thing about one app"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "grok",
+   "name": "Grok",
+   "tasks": [
+    {
+     "id": "MID-GRK-01",
+     "title": "Give every debt in the book its APR, minimum, due day, limit and promo end",
+     "state": "now",
+     "due": "2026-11-09",
+     "why": "The new Debt screen plans the way out: it needs, for every card and loan, the numbers the bank shows. Without them it can only show balances.",
+     "inputs": [
+      "https://raw.githubusercontent.com/jpavia10/midas-ledger/main/README.md",
+      "https://raw.githubusercontent.com/jpavia10/midas-ledger/main/docs/BOOK_SCHEMA.md"
+     ],
+     "steps": [
+      "For every card and loan in the private ledger, add: apr (percent), min_payment, due_day (1-31), credit_limit (cards), promo_apr and promo_end (YYYY-MM-DD) when there is one, as_of (the statement date you read them from).",
+      "Read them from the statements and alerts in Joseph's email or the lender's site, never from memory.",
+      "Rebuild and encrypt the book with publish.sh as you do now; the plaintext never goes to Drive, Discord or GitHub."
+     ],
+     "deliver": {
+      "file": "the encrypted book (index.html #vault) via publish.sh",
+      "folder": "jpavia10/midas-ledger, a branch grok/... and a pull request",
+      "shape": "docs/BOOK_SCHEMA.md section 'debts'"
+     },
+     "count": 1,
+     "done_when": "On the Debt screen, no card or loan shows 'APR missing' or 'minimum missing'.",
+     "checks": [
+      "Joseph opens the Debt screen; the app lists every debt missing a field.",
+      "test/book.test.mjs checks the shape of every debt."
+     ],
+     "rejected_if": [
+      "a number guessed or carried over without an as_of date",
+      "plaintext balances anywhere outside the encrypted book"
+     ]
+    },
+    {
+     "id": "MID-GRK-02",
+     "title": "A fresh book every Monday by noon PT",
+     "state": "now",
+     "due": "2026-11-09",
+     "why": "A ledger more than a week old makes every number on the screen a guess.",
+     "inputs": [
+      "the 4 Plaid accounts",
+      "Joseph's email (bills, statements, alerts)"
+     ],
+     "steps": [
+      "Every Monday by 12:00 PT: refresh the 4 Plaid accounts, update balances, holds, stale/past-due/need-you marks, rebuild and encrypt with publish.sh.",
+      "Add one log line saying what changed (counts only, no amounts)."
+     ],
+     "deliver": {
+      "file": "the encrypted book",
+      "folder": "jpavia10/midas-ledger",
+      "shape": "as now"
+     },
+     "count": 1,
+     "done_when": "The app's 'built' stamp is never older than 7 days.",
+     "checks": [
+      "the app shows the build age; Claude checks the commit dates"
+     ],
+     "rejected_if": [
+      "a week missed"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "muse",
+   "name": "Muse",
+   "tasks": [
+    {
+     "id": "MID-MUS-01",
+     "title": "The words of the way out: 24 milestone lines and 12 screen lines",
+     "state": "now",
+     "due": "2026-11-10",
+     "why": "When a card hits zero or the debt-free date moves closer, Midas says so. The lines must be plain and true, never cheesy.",
+     "inputs": [
+      "https://raw.githubusercontent.com/jpavia10/midas-ledger/main/README.md"
+     ],
+     "steps": [
+      "24 milestone lines, one per event: first payment logged; each of 5%, 10%, 25%, 33%, 50%, 66%, 75%, 90%, 100% of starting debt paid; first card paid off; each further card paid off; debt-free date moves 1 month closer; 3, 6, 12 months in a row on plan; a month over plan; a month under plan (kind, no guilt); a new debt added (no guilt, a plan).",
+      "Each at most 90 characters, no exclamation marks, no emoji, uses {amount}, {months}, {name} where a number belongs (never a made-up number).",
+      "12 screen lines: one plain sentence under each main number on Home, Debt and Flow saying what it means."
+     ],
+     "deliver": {
+      "file": "midas_muse_milestones_{YYYYMMDD-HHMM}.md",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "two tables: event | line ; number | line"
+     },
+     "count": 36,
+     "done_when": "36 lines, all within the limits.",
+     "checks": [
+      "Claude counts characters and placeholders."
+     ],
+     "rejected_if": [
+      "a line over 90 characters",
+      "a number that is not a placeholder",
+      "'journey', 'crush', 'smash', 'unlock'"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "chatgpt",
+   "name": "ChatGPT",
+   "tasks": [
+    {
+     "id": "MID-GPT-01",
+     "title": "Audit Midas v2 on the made-up book: 20 findings",
+     "state": "next",
+     "due": "2026-11-14",
+     "why": "After Claude ships the new design, a second pair of eyes on it.",
+     "inputs": [
+      "https://jpavia10.github.io/midas-ledger/ (password-protected: use the made-up book Claude links in the README once v2 is live)"
+     ],
+     "steps": [
+      "Use every tab on a phone-sized screen.",
+      "20 findings: where / what is wrong / fix / severity 1-3; at least 6 about whether it makes you want to pay debt down."
+     ],
+     "deliver": {
+      "file": "midas_chatgpt_audit_{YYYYMMDD-HHMM}.md",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "numbered list, 20 items"
+     },
+     "count": 20,
+     "done_when": "20 findings Claude can reproduce.",
+     "checks": [
+      "Claude reproduces 5 at random."
+     ],
+     "rejected_if": [
+      "a row copied from another row with the names changed",
+      "a source URL that does not open or does not say what the row claims",
+      "fewer items than the count",
+      "a file saved anywhere but the folder named here, or under another name"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "claude",
+   "name": "Claude",
+   "tasks": [
+    {
+     "id": "MID-CLA-01",
+     "title": "Midas v2: a new design that makes the way out of debt visible",
+     "state": "now",
+     "due": "2026-11-08",
+     "why": "Joseph: 'that whole app needs a 100000 percent better design. Its embarrassing and not inspiring me to get out of debt.'",
+     "inputs": [
+      "the made-up book (src/demo.js)",
+      "MID-GEM-02 and MID-GEM-03 when they land"
+     ],
+     "steps": [
+      "Prometheus look (cool midnight, depth, light), not neon",
+      "Home leads with the debt-free date and the distance covered",
+      "a payoff planner checked against MID-GEM-01"
+     ],
+     "deliver": {
+      "file": "the app",
+      "folder": "jpavia10/midas-ledger main",
+      "shape": "live page"
+     },
+     "count": 1,
+     "done_when": "Live on Pages, the encrypted book still opens, every test passes.",
+     "checks": [
+      "npm run check",
+      "phone + desktop screenshots"
+     ],
+     "rejected_if": [
+      "a real balance in the repo"
+     ]
+    }
+   ]
+  }
+ ]
+}

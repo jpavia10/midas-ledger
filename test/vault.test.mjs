@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { openVault } from "../src/ledger.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_CT_SHA256 = "6f73be49eb3924ea8f24aedccc6d7cceae7bdcec51555278213856d8045ff38a";
+const EXPECTED_CT_SHA256 = "f5759c9b4ecebb72e02fa3508b05edaef4a38517e6fd9aea0f213b11ec5952d9";
 
 function readVault() {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -21,8 +21,8 @@ test("published ciphertext is intact", () => {
   const { html, vault } = readVault();
   assert.equal(vault.v, 1);
   assert.equal(vault.iter, 600000);
-  assert.equal(vault.salt, "IVi1m/IuFxIQoGDbkFG17Q==");
-  assert.equal(vault.iv, "gk2OVq5VXvwfad3V");
+  assert.equal(vault.salt, "JmLuzCVjM1I18XRlAN0TDg==");
+  assert.equal(vault.iv, "/HQi6ku61+OVpoxn");
   assert.equal(crypto.createHash("sha256").update(vault.ct).digest("hex"), EXPECTED_CT_SHA256);
   assert.equal(html.split(vault.salt).length - 1, 1);
   assert.equal(html.split("VAULT_JSON_HERE").length - 1, 0);

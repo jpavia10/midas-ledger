@@ -79,7 +79,7 @@ export function filterSummary(current, counts) {
 export function filterBarHtml() {
   const sections = SECTIONS.map((item) => `<button type="button" class="chip" data-filter-section="${escAttr(item.id)}" aria-pressed="${item.id === "all" ? "true" : "false"}">${esc(item.label)}</button>`).join("");
   const marks = MARKS.map((item) => `<button type="button" class="chip" data-filter-mark="${escAttr(item.id)}" aria-pressed="${item.id === "all" ? "true" : "false"}">${esc(item.label)}</button>`).join("");
-  return `<div class="filterbar" id="filters">
+  return `<div class="filterbar glass" id="filters">
     <div class="filter-top">
       <label class="sr" for="q">Search by name or id</label>
       <input id="q" type="search" inputmode="search" enterkeyhint="search" placeholder="Search name or id" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">

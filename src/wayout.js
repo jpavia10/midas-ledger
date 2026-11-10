@@ -27,22 +27,22 @@ export function homeHeroHtml(book) {
   const sub = !w.debts.length ? "" : dated
     ? `${plan.months.length} months at ${money(w.budget, 0)} a month · ${money(plan.total_interest, 0)} of interest still to pay · ${money(w.total, 0)} owed today`
     : w.missing.length ? `${w.missing.length} of ${w.debts.length} debts still need their APR and minimum in the book before Midas can date the way out.` : "";
-  return `<section class="wayout" aria-label="The way out">
+  return `<section class="wayout glass lit" aria-label="The way out">
     <p class="kicker">The way out</p>
     ${head}
     <p class="wo-sub">${sub}</p>
     ${w.debts.length ? `<div class="wo-progress" role="img" aria-label="${esc(`Paid down ${money(paid, 0)} since ${base?.at || "today"}`)}">
-      <div class="wo-track"><i style="width:${Math.min(100, pct).toFixed(1)}%"></i></div>
+      <div class="meter"><i style="width:${Math.min(100, pct).toFixed(1)}%"></i></div>
       <p class="meta">${paid > 0 ? `Paid down <b>${money(paid, 0)}</b> since ${esc(base.at)} · ${pct.toFixed(1)} % of the way` : `Starting line: ${money(base?.total ?? w.total, 0)} on ${esc(base?.at || "today")}. Every payment moves this bar.`}</p>
     </div>` : ""}
-    ${w.debts.length ? `<button type="button" class="pill wo-go" data-tab="plan">See the plan <span aria-hidden="true">→</span></button>` : ""}
+    ${w.debts.length ? `<button type="button" class="btn wo-go" data-tab="plan">See the plan <span aria-hidden="true">→</span></button>` : ""}
   </section>`;
 }
 
 function methodCard(key, sim, w, chosen) {
   if (!sim) return "";
   const ok = sim.ok, n = sim.months.length, save = w.methods.minimums && w.methods.minimums.ok ? w.methods.minimums.total_interest - sim.total_interest : null;
-  return `<button type="button" class="method${key === chosen ? " on" : ""}" data-method="${key}" aria-pressed="${key === chosen}">
+  return `<button type="button" class="method glass${key === chosen ? " on lit" : ""}" data-method="${key}" aria-pressed="${key === chosen}">
     <span class="m-name">${NAMES[key]}</span><span class="m-why">${WHY[key]}</span>
     <span class="m-date">${ok ? addMonths(n) : "Never at this budget"}</span>
     <span class="m-facts">${ok ? `${n} months · ${money(sim.total_interest, 0)} interest${key !== "minimums" && save > 0.5 ? ` · saves ${money(save, 0)}` : ""}` : esc(sim.reason)}</span>
@@ -64,7 +64,7 @@ export function planHtml(book, budget, method) {
       <p class="kicker">The plan</p>
       <h2>Every debt, in the order it goes</h2>
       ${!w.debts.length ? `<p class="meta">No debt in the book.</p>` : `
-      <label class="budget"><span>Every month, for all debts together</span>
+      <label class="budget glass"><span>Every month, for all debts together</span>
         <input type="range" min="${Math.ceil(w.minSum)}" max="${Math.max(Math.ceil(w.minSum * 3), Math.ceil(w.minSum) + 500)}" step="10" value="${Math.round(w.budget)}" data-budget aria-label="Monthly budget for debt">
         <b class="num" data-budget-out>${money(w.budget, 0)}</b><small>minimums ${money(w.minSum, 0)}</small></label>
       ${faster}

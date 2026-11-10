@@ -6,7 +6,7 @@
   <meta name="format-detection" content="telephone=no">
   <meta name="robots" content="noindex, nofollow">
   <title>Midas Ledger</title>
-  <meta name="description" content="Midas Ledger is the encrypted finance wing of Prometheus Hub.">
+  <meta name="description" content="Midas Ledger is the money book on the Prometheus desk.">
   <meta name="theme-color" content="#05070e">
   <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,7 +25,7 @@
     } catch (e) {}
   </script>
 </head>
-<body data-pillar="midas">
+<body data-pillar="midas" data-layout="command">
   <a class="skip" href="#gate">Skip to the book</a>
   <canvas id="field" aria-hidden="true"></canvas>
   <div class="veil" aria-hidden="true"></div>
@@ -39,7 +39,6 @@
       <span class="spacer" aria-hidden="true"></span>
       <nav class="topnav" aria-label="Ledger">
         <a class="tab when-locked" href="#gate" aria-current="true">Unlock</a>
-        <a class="tab when-locked" href="#wing">Wing</a>
         <button type="button" class="tab textbtn when-open section-link" data-tab="home">Home</button>
         <button type="button" class="tab textbtn when-open section-link" data-tab="flow">Flow</button>
         <button type="button" class="tab textbtn when-open section-link" data-tab="accounts">Accounts</button>
@@ -54,8 +53,17 @@
 
   <main id="lock" class="shell">
     <section id="gate" class="hero" data-nav>
-      <p class="kicker">Finance wing</p>
-      <h1>Midas <em>ledger</em></h1>
+      <div class="mast">
+        <div class="mast-title">
+          <p class="kicker"><span class="sq" aria-hidden="true"></span> <span data-atmo>Evening</span></p>
+          <p class="greet"><span data-greet>Good evening</span></p>
+          <h1>Midas</h1>
+        </div>
+        <div class="mast-time">
+          <time class="clock num" data-clock datetime="">—</time>
+          <p class="day-line" data-day></p>
+        </div>
+      </div>
       <div class="hero-copy">
         <p class="lede">Encrypted. Enter your password. The book stays on this device.</p>
         <form class="glass lit" id="f">
@@ -65,16 +73,16 @@
           <button class="btn" type="submit">Unlock <span aria-hidden="true">→</span></button>
           <p class="err" id="err" role="status" aria-live="polite"></p>
         </form>
-        <a class="back" href="https://jpavia10.github.io/prometheus-hub/">Prometheus Hub</a>
+        <a class="back" href="https://jpavia10.github.io/prometheus-hub/">Back to the desk</a>
       </div>
     </section>
 
-    <section id="wing" class="glass" data-nav>
-      <p class="kicker">Finance wing</p>
-      <h2>The book stays here.</h2>
+    <section id="about" class="glass" data-nav>
+      <p class="kicker">The book</p>
+      <h2>It stays on this device.</h2>
       <p class="lede">Balances are encrypted in this page. They open with the password, on this device. Nothing is sent away.</p>
       <div class="actions">
-        <a class="btn" href="https://jpavia10.github.io/prometheus-hub/">Prometheus Hub <span aria-hidden="true">→</span></a>
+        <a class="btn" href="https://jpavia10.github.io/prometheus-hub/">Back to the desk <span aria-hidden="true">→</span></a>
         <a class="back" href="#gate">Unlock</a>
       </div>
     </section>

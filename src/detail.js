@@ -276,7 +276,7 @@ function logDetail(bookData, index) {
 function groupDetail(bookData, name) {
   if (name === "overview") {
     const h = bookData.headline || {};
-    return `<p class="kicker">Finance wing</p>
+    return `<p class="kicker">The book</p>
       <h2 id="detail-title">Overview</h2>
       <p class="meta">Built ${esc(bookData.built_pt || "")} · ledger: ${esc(bookData.ledger_update || bookData.ledger_revised || "")}</p>
       <div class="roster-list">

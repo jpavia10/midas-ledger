@@ -184,10 +184,17 @@ export function ledgerHtml(d) {
   const holdHtml = holds.length ? `<ul class="holds">${holds.map((hold) => `<li><span class="id">${esc(hold.acct || "")}</span> ${esc(hold.memo || hold.name || "Hold")} <b class="num">${money(hold.amount)}</b></li>`).join("")}</ul>` : `<p class="meta">No holds on the spendable accounts.</p>`;
 
   const overview = `<section class="panel hero hud-home" id="overview" data-tab-panel="home" data-shift="0" data-nav>
-    <div class="hero-mark">
-      <p class="kicker">Finance wing</p>
-      <h1 id="overview-title" tabindex="-1">Midas <em>ledger</em></h1>
-      <p class="lede">Built ${esc(d.built_pt || "")} · ledger: ${when}</p>
+    <div class="mast">
+      <div class="mast-title">
+        <p class="kicker"><span class="sq" aria-hidden="true"></span> The book</p>
+        <p class="greet"><span data-greet>Good evening</span></p>
+        <h1 id="overview-title" tabindex="-1">Midas</h1>
+        <p class="lede">Built ${esc(d.built_pt || "")} · ledger: ${when}</p>
+      </div>
+      <div class="mast-time">
+        <time class="clock num" data-clock datetime="">—</time>
+        <p class="day-line" data-day></p>
+      </div>
     </div>
     ${homeHeroHtml(d)}
     <article class="card glass lit metric opener" ${opener("metric:banked")}>

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Midas Ledger",
   "short_name": "Midas",
-  "description": "The encrypted finance wing of Prometheus Hub.",
+  "description": "The encrypted money book on the Prometheus desk.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

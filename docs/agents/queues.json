@@ -1,6 +1,6 @@
 {
  "about": "Homework for this pillar, one list per AI (Claude writes it; tools/kit/render.py in jpavia10/prometheus-hub turns it into docs/agents/QUEUE_{ai}.md and the Drive docs). Every task says exactly what to read, what to make, how many, where to save it, how Claude checks it and what makes it not done. A task is done only when the file passes the checks, never because it was sent.",
- "updated": "2026-11-05",
+ "updated": "2026-11-09",
  "pillar": "midas",
  "agents": [
   {
@@ -10,7 +10,7 @@
     {
      "id": "MID-GEM-01",
      "title": "12 debt payoff cases worked to the cent",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-09",
      "why": "Midas is getting a payoff planner (avalanche, snowball and Joseph's own order). Claude checks its engine against cases worked by someone else. No real balances: every case is made up.",
      "inputs": [],
@@ -40,7 +40,7 @@
     {
      "id": "MID-GEM-02",
      "title": "20 research findings on what really helps people pay off debt, each with its DOI",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-10",
      "why": "Joseph: the app must inspire him to get out of debt. Claude designs from evidence, not slogans.",
      "inputs": [
@@ -71,7 +71,7 @@
     {
      "id": "MID-GEM-03",
      "title": "15 money apps taken apart: 75 things that make people keep going",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-11",
      "why": "Midas looked 'neon' and uninspiring. Claude wants the specific moves the best apps use.",
      "inputs": [
@@ -104,7 +104,7 @@
     {
      "id": "MID-GEM-04",
      "title": "Minimum payment formulas of 25 US card issuers, quoted from their cardholder agreements",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-12",
      "why": "Midas's payoff engine (src/plan.js) keeps each minimum fixed; real minimums fall as the balance falls. The engine needs each issuer's real formula.",
      "inputs": [],
@@ -137,7 +137,7 @@
     {
      "id": "MID-GEM-05",
      "title": "How 25 issuers compute interest: balance method, day count, compounding, grace",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-13",
      "why": "Midas computes balance x APR / 12. Real cards compound daily on an average daily balance; the gap matters on large balances.",
      "inputs": [],
@@ -167,7 +167,7 @@
     {
      "id": "MID-GEM-06",
      "title": "20 promo-rate products: deferred interest or true 0 %, quoted",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-14",
      "why": "Midas shows promo rates but does not model them; a deferred-interest promo charges all the back interest if not paid off in time.",
      "inputs": [],
@@ -198,7 +198,7 @@
     {
      "id": "MID-GEM-07",
      "title": "25 hardship programs: what each lender offers and how to ask",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-15",
      "why": "The way out of debt is faster with a lower APR. Many issuers have hardship or APR-reduction programs; Joseph should know what to ask for.",
      "inputs": [],
@@ -229,7 +229,7 @@
     {
      "id": "MID-GEM-08",
      "title": "12 daily-compounding interest cases worked to the cent",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-16",
      "why": "Before Midas switches to daily interest (MID-GEM-05), Claude needs cases worked by hand to test it against.",
      "inputs": [],
@@ -331,7 +331,7 @@
     {
      "id": "MID-MUS-01",
      "title": "The words of the way out: 24 milestone lines and 12 screen lines",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-10",
      "why": "When a card hits zero or the debt-free date moves closer, Midas says so. The lines must be plain and true, never cheesy.",
      "inputs": [

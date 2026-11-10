@@ -163,7 +163,7 @@ function categoryBlock(book) {
     </div>`;
   }).join("");
   const burn = finite(picked.burn);
-  return `<article class="card metric">
+  return `<article class="card glass metric">
     <p class="kicker">Categories · ${esc(picked.label || picked.id || "")}${picked.stub ? " · stub" : ""}</p>
     <p class="meta">${burn == null ? "" : "Burn " + money(burn)}</p>
     <div class="chart comp">${rows}</div>
@@ -206,7 +206,7 @@ function utilitySvg(book) {
   }).join(" ");
   const legend = ids.map((id, n) => `<span class="legend"><i style="background:${SERIES[n % SERIES.length]}"></i>${esc(names[id] || id)}</span>`).join("");
   const rows = months.map((month) => `<li data-util-month="${escAttr(month.id || "")}" data-util-total="${escAttr(month.total ?? "")}" data-util-cum="${escAttr(month.cumulative ?? "")}">${esc(month.label || month.id || "")} <b class="num">${esc(money(finite(month.total)))}</b> <span class="meta">cum ${esc(money(finite(month.cumulative)))}</span></li>`).join("");
-  return `<article class="card metric">
+  return `<article class="card glass metric">
     <p class="kicker">Utilities</p>
     <div class="legend-row">${legend}<span class="legend"><i style="background:${LIME}"></i>Cumulative</span></div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Utilities by month and cumulative">
@@ -277,7 +277,7 @@ function networthBlock(book) {
       <article class="card inset"><p class="kicker">Assets</p><p class="figure num">${esc(money(position.assets))}</p></article>
       <article class="card inset"><p class="kicker">Liabilities</p><p class="figure num debt">${esc(money(position.liabilities))}</p></article>
     </div>` : "";
-  return `<article class="card metric">
+  return `<article class="card glass metric">
     <p class="kicker">Net worth</p>
     ${svg}
     ${pair}
@@ -287,12 +287,12 @@ function networthBlock(book) {
 
 export function flowChartsHtml(book) {
   const rows = flowRows(book);
-  const flow = rows.length ? `<article class="card metric">
+  const flow = rows.length ? `<article class="card glass metric">
       <p class="kicker">Income vs spend</p>
       <div class="legend-row"><span class="legend"><i style="background:${CYAN}"></i>In</span><span class="legend"><i style="background:${ROSE}"></i>Out</span><span class="legend"><i style="background:${LIME}"></i>Net</span></div>
       ${flowSvg(rows)}
       <ul class="mini">${rows.map((row) => `<li data-flow-month="${escAttr(row.id)}" data-flow-income="${escAttr(row.income)}" data-flow-spend="${escAttr(row.spend)}" data-flow-net="${row.net == null ? "" : escAttr(row.net)}"><span>${esc(row.label)}</span> <b class="num">${row.net == null ? "—" : esc(money(row.net))}</b></li>`).join("")}</ul>
-    </article>` : `<article class="card metric"><p class="kicker">Income vs spend</p><p class="meta">Cash flow shows up when the book is rebuilt with a Plaid rollup or a Cash flow page.</p></article>`;
+    </article>` : `<article class="card glass metric"><p class="kicker">Income vs spend</p><p class="meta">Cash flow shows up when the book is rebuilt with a Plaid rollup or a Cash flow page.</p></article>`;
   return `<div class="flow-stack">${flow}${categoryBlock(book)}${utilitySvg(book)}${networthBlock(book)}</div>`;
 }
 

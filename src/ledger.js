@@ -74,7 +74,7 @@ function opener(key) {
 
 function tags(marks) {
   return (marks || []).map((t) => {
-    const cls = t === "STALE?" ? "st" : t === "NEED YOU" ? "nd" : t === "HOLD" ? "hold" : t === "VERIFIED" ? "ok" : "";
+    const cls = t === "STALE?" ? "st" : t === "NEED YOU" || t === "PAST DUE" ? "nd" : t === "HOLD" ? "hold" : t === "VERIFIED" ? "ok" : "";
     return `<span class="tag ${cls}">${esc(t)}</span>`;
   }).join("");
 }
@@ -109,7 +109,7 @@ function cardRow(c, extra = "") {
   const from = c.source != "card" ? "· from " + esc(c.source) : "";
   const prev = c.prev != null ? " · card said " + money(c.prev) : "";
   const lines = c.balance == null || bad ? `<p class="note">${(c.lines || []).map(esc).join("<br>")}</p>` : "";
-  return `<article class="card opener ${cls}" ${opener("card:" + c.id)} ${accountAttrs(c)}>
+  return `<article class="card glass opener ${cls}" ${opener("card:" + c.id)} ${accountAttrs(c)}>
     <div class="row">
       <h3>${esc(c.name)} <span class="id">${esc(c.id)}</span>${extra}</h3>
       <p class="figure">${figure}<span class="go card-go" aria-hidden="true">→</span></p>
@@ -144,7 +144,9 @@ export function showTab(name) {
   const app = document.getElementById("app");
   if (!app) return;
   app.querySelectorAll("[data-tab-panel]").forEach((el) => {
-    el.hidden = el.getAttribute("data-tab-panel") !== name;
+    const on = el.getAttribute("data-tab-panel") === name;
+    el.hidden = !on;
+    el.classList.toggle("is-live", on);
   });
   document.querySelectorAll("[data-tab]").forEach((btn) => {
     const on = btn.getAttribute("data-tab") === name;
@@ -183,15 +185,12 @@ export function ledgerHtml(d) {
 
   const overview = `<section class="panel hero hud-home" id="overview" data-tab-panel="home" data-shift="0" data-nav>
     <div class="hero-mark">
-      <span class="sq big" aria-hidden="true"></span>
-      <h1 id="overview-title" tabindex="-1">MIDAS <span class="hub">ledger</span></h1>
-    </div>
-    <div class="hero-copy overview-copy">
-      <p class="kicker">Spendable · Plaid available</p>
+      <p class="kicker">Finance wing</p>
+      <h1 id="overview-title" tabindex="-1">Midas <em>ledger</em></h1>
       <p class="lede">Built ${esc(d.built_pt || "")} · ledger: ${when}</p>
     </div>
     ${homeHeroHtml(d)}
-    <article class="card metric glow-card opener" ${opener("metric:banked")}>
+    <article class="card glass lit metric opener" ${opener("metric:banked")}>
       <div class="spend-row">
         ${ring(pct, bar)}
         <div>
@@ -210,7 +209,7 @@ export function ledgerHtml(d) {
   </section>`;
 
   const metrics = `<section class="overview-metrics" aria-label="Headline" data-tab-panel="home">
-    <article class="card metric glow-card">
+    <article class="card glass metric">
       <button type="button" class="metric-hit" data-open="metric:stress" data-chart="gauge" data-score="${h.stress ?? ""}">
         ${gauge(h.stress)}
         <p class="chart-tip gauge-tip" role="status" hidden></p>
@@ -218,7 +217,7 @@ export function ledgerHtml(d) {
       ${sparkHtml(d.history || [])}
       <p class="meta">${(d.history || []).length} points · dashed line = goal 400</p>
     </article>
-    <article class="card metric">
+    <article class="card glass metric">
       <button type="button" class="metric-hit" data-open="metric:revolving">
         <p class="kicker">Revolving</p>
         <p class="figure num debt">${money(h.revolving)}</p>
@@ -233,7 +232,7 @@ export function ledgerHtml(d) {
     false,
     "Needs you / stale",
     "Attention",
-    attention.map((c) => `<article class="card opener ${c.marks.includes("NEED YOU") ? "alert" : "warnb"}" ${opener("card:" + c.id)} ${accountAttrs(c)}>
+    attention.map((c) => `<article class="card glass opener ${c.marks.includes("NEED YOU") ? "alert" : "warnb"}" ${opener("card:" + c.id)} ${accountAttrs(c)}>
       <h3>${esc(c.name)}</h3>
       <div class="tags">${tags(c.marks)}</div>
       <p class="meta">${esc((c.lines && c.lines[0]) || c.status || "")}</p>

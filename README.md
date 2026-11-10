@@ -1,6 +1,6 @@
 # Midas Ledger
 
-The finance wing of Prometheus Hub, in the Prometheus look (cool midnight, pearl type, Midas gold as the one warm light; v2, 2026-11-05, replaced the neon HUD). Home leads with **the way out**: the debt-free month, the months and interest left at your monthly budget, and how much you have paid down since the starting line this device saw. **Plan** compares avalanche, snowball, your own order and minimums only, with a budget slider and what $100 more a month changes. Tab bar: Home, Flow, Accounts, Plan, Debt, Book. The book stays encrypted in the browser.
+The finance wing of Prometheus Hub. The look is the shared kit in `kit/prometheus.css` (cool midnight, pearl type, glass, Outfit). `body[data-pillar="midas"]` sets the one warm light to Midas gold `#e9d7a8`. Numbers use tabular figures. Home leads with **the way out**: the debt-free month, the months and interest left at your monthly budget, and how much you have paid down since the starting line this device saw. **Plan** compares avalanche, snowball, your own order and minimums only, with a budget slider and what $100 more a month changes. Tab bar: Home, Flow, Accounts, Plan, Debt, Book. The book stays encrypted in the browser.
 
 https://jpavia10.github.io/midas-ledger/
 

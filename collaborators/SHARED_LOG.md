@@ -2,6 +2,10 @@
 
 Newest first. Every contributor (Claude and every AI) adds a dated 2-3 line entry after a change.
 
+### [2026-11-10] Grok: the book uses the Prometheus kit
+- Vendored `kit/prometheus.css` and pointed the shell at `body[data-pillar="midas"]`. Dropped the leftover HUD token names so glass, type, tabs, and the warm light come from the shared kit.
+- Home is a wider desk (the way out beside stress and revolving). Encryption, the vault, and the passphrase flow are unchanged. Preview with the fictional `?hud=1` book.
+
 ### [2026-11-09] Sebastian (acting integrator, for Claude): non-Titan homework merge
 - MID-GEM-01..08 datasets and MID-MUS-01 copy (24 milestone + 12 screen lines, verbatim-verified) merged from Drive incoming and closed in docs/agents/queues.json; board re-rendered from the hub. The lines are ready to wire into the screens; scoring deferred to Claude.
 

@@ -90,7 +90,7 @@ function extraFacts(obj, known) {
 function tags(marks) {
   if (!marks || !marks.length) return "";
   return `<div class="tags">${marks.map((t) => {
-    const cls = t === "STALE?" ? "st" : t === "NEED YOU" ? "nd" : t === "HOLD" ? "hold" : t === "VERIFIED" ? "ok" : "";
+    const cls = t === "STALE?" ? "st" : t === "NEED YOU" || t === "PAST DUE" ? "nd" : t === "HOLD" ? "hold" : t === "VERIFIED" ? "ok" : "";
     return `<span class="tag ${cls}">${esc(t)}</span>`;
   }).join("")}</div>`;
 }
@@ -464,7 +464,7 @@ function runDeviceAct(act) {
 
 function shell(inner) {
   return `<div class="detail-scrim" data-close></div>
-    <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="detail-panel glass" role="dialog" aria-modal="true" aria-labelledby="detail-title">
       <button type="button" class="detail-back" data-close><span aria-hidden="true">←</span> Back</button>
       <div class="detail-body">${inner}</div>
     </div>`;

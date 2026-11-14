@@ -2,6 +2,10 @@
 
 Newest first. Every contributor (Claude and every AI) adds a dated 2-3 line entry after a change.
 
+### [2026-11-14] Grok: posted balances, distinct assets, mortgage forecast
+- Debt bars and the revolving headline use the posted outstanding balance. Autopay, minimums, drafts, prior figures and pending-payoff projections stay beside it. Suffixed account ids stay distinct, unknown stays unknown, and net worth says INCOMPLETE while a part is missing.
+- The mortgage forecast separates P&I, escrow and a held half-draft, and leaves extra principal conditional. `docs/BOOK_SCHEMA.md` now states the ledger text and `midas.monthly_categories.v1`. Vault ciphertext unchanged.
+
 ### [2026-11-10] Grok: command-desk pass
 - The book uses the live desk atmosphere (starfield, mast, glass) and drops the old compartment label from the chrome. Midas gold stays the warm accent inside the kit.
 - Vault ciphertext unchanged. Preview with the fictional `?hud=1` book.

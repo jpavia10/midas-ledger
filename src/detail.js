@@ -1,6 +1,6 @@
 /* Detail views for the decrypted book. Only fields the book already carries.
    Device notes, pins, and reviewed marks are stored beside the book, not inside it. */
-import { bindCharts, compositionHtml, flowChartsHtml, sparkHtml, spendableOf } from "./charts.js";
+import { balanceLabel, bindCharts, compositionHtml, flowChartsHtml, sparkHtml, spendableOf } from "./charts.js";
 import { entryFor, formatReviewed, patchEntry } from "./desk.js";
 import { focusField, releaseField } from "./particles.js";
 
@@ -133,7 +133,7 @@ function notes(lines) {
 
 function cardRoster(c) {
   const phase = ORDER[c.id] ? ORDER[c.id][1] : "";
-  const figure = c.balance == null ? "see note" : money(c.balance);
+  const figure = balanceLabel(c);
   return `<button type="button" class="roster" data-open="card:${escAttr(c.id)}">
     <span><b>${esc(c.name)}</b> <span class="id">${esc(c.id)}</span>${phase ? ` <span class="phase">${esc(phase)}</span>` : ""}</span>
     <span class="figure">${figure}</span>
@@ -155,15 +155,37 @@ function floorNote(amount, floor) {
   return pct >= 100 ? "Above floor by " + money(have - goal) : "Short " + money(goal - have);
 }
 
+function termsFacts(card) {
+  const terms = card.terms;
+  if (!terms) return "";
+  const caveat = terms.promo_end || terms.deferred_interest
+    ? fact("Promo caveat", "Deferred interest can apply if the balance is unpaid by the promo end. That date is not the payment due day.")
+    : "";
+  return [
+    fact("Purchase APR", terms.apr != null ? terms.apr + "%" : ""),
+    fact("Promo APR", terms.promo_apr != null ? terms.promo_apr + "%" : ""),
+    fact("Promo end", terms.promo_end || ""),
+    fact("Due day", terms.due_day != null ? String(terms.due_day) : ""),
+    fact("Minimum", terms.min_unknown ? "unknown" : terms.min_payment != null ? money(terms.min_payment) : ""),
+    fact("P&I", terms.pi != null ? money(terms.pi) : ""),
+    fact("Escrow", terms.escrow != null ? money(terms.escrow) : ""),
+    fact("Frequency", terms.frequency || ""),
+    fact("Unapplied drafts", terms.unapplied || ""),
+    caveat,
+  ].join("");
+}
+
 function cardDetail(bookData, id) {
-  const card = (bookData.cards || []).find((c) => c.id === id);
+  const matches = (bookData.cards || []).filter((c) => c.id === id);
+  const card = matches[0];
   if (!card) return "";
   const phase = ORDER[card.id] ? ORDER[card.id][1] : "";
   const siblings = cardsIn(bookData, card.section).filter((c) => c.id !== card.id);
   const siblingLabel = "Also in " + labelFor(card.section);
   return `<p class="kicker">${esc(labelFor(card.section))}</p>
     <h2 id="detail-title">${esc(card.name)}</h2>
-    <p class="figure${card.section === "Loans" ? " debt" : ""}">${card.balance == null ? '<span class="pending">see note</span>' : money(card.balance)}</p>
+    <p class="figure${card.section === "Loans" ? " debt" : ""}">${card.unknown ? '<span class="pending">unknown</span>' : card.balance == null ? '<span class="pending">see note</span>' : money(card.balance)}</p>
+    ${matches.length > 1 ? `<p class="meta">Duplicate id ${esc(card.id)} is on ${matches.length} cards.</p>` : ""}
     ${tags(card.marks)}
     ${markHelp(card.marks)}
     <div class="facts">
@@ -176,7 +198,15 @@ function cardDetail(bookData, id) {
       ${card.prev != null ? fact("Card said", money(card.prev)) : ""}
       ${fact("Status", card.status)}
       ${fact("Payoff", phase)}
-      ${extraFacts(card, CARD_KNOWN)}
+      ${fact("Gross", typeof card.gross === "number" ? money(card.gross) : "")}
+      ${fact("Equity", typeof card.equity === "number" ? money(card.equity) : "")}
+      ${card.unknown ? fact("Value", "unknown") : ""}
+      ${card.autopay != null ? fact("Autopay", money(card.autopay) + " · not the balance") : ""}
+      ${card.minimum_due != null ? fact("Minimum due", money(card.minimum_due)) : ""}
+      ${card.projected != null ? fact("Pending payoff", money(card.projected) + " · not posted") : ""}
+      ${card.draft != null ? fact("Draft", money(card.draft) + " · not principal") : ""}
+      ${termsFacts(card)}
+      ${extraFacts(card, new Set([...CARD_KNOWN, "gross", "equity", "unknown", "kind", "autopay", "draft", "projected", "minimum_due", "prior_balance", "statement_balance", "amount_due", "cost", "duplicate", "parts"]))}
     </div>
     ${(card.holds || []).length ? `<div class="notes"><p class="kicker">Holds</p>${card.holds.map((hold) => `<p>${esc(hold.memo || "Hold")} · ${money(hold.amount)}</p>`).join("")}</div>` : ""}
     ${notes(card.lines)}

@@ -5,7 +5,7 @@ export function demoBook() {
     built_pt: "2026-11-04 00:00 PT",
     plan: { method: "avalanche", budget: 520 },
     ledger_update: "preview",
-    headline: { stress: 462, banked: 1804, spendable: 842.16, floor: 3000, revolving: 2410.4 },
+    headline: { stress: 462, banked: 1804, spendable: 842.16, floor: 3000, revolving: 2410.4, revolving_asof: "2026-11-03", revolving_basis: "posted", revolving_projected: 1800, installment: 360 },
     history: [
       { when: "Aug", score: 710 },
       { when: "Sep", score: 640 },
@@ -17,11 +17,15 @@ export function demoBook() {
       { section: "Cash", id: "A1", name: "Sink", balance: 200, available: 200, current: 260, marks: ["VERIFIED"], asof: "2026-11-03", source: "plaid", prev: null, lines: [] },
       { section: "Cash", id: "A9", name: "Old jar", balance: 9999, marks: ["STALE?"], asof: "2026-01-01", source: "note", prev: null, lines: ["do not spend this"] },
       { section: "Cards (detail)", id: "L8", name: "Alpha card", balance: 640, marks: ["VERIFIED"], asof: "2026-11-01", source: "plaid", prev: null, lines: [], terms: { apr: 27.99, min_payment: 35, due_day: 14, credit_limit: 1000, asof: "2026-10-28" } },
-      { section: "Cards (detail)", id: "L6", name: "Beta card", balance: 410.4, marks: ["VERIFIED"], asof: "2026-11-01", source: "plaid", prev: null, lines: [], terms: { apr: 0, min_payment: 25, due_day: 3, credit_limit: 2000, promo_apr: 0, promo_end: "2027-03-31", asof: "2026-10-20" } },
+      { section: "Cards (detail)", id: "L6", name: "Beta card", balance: 410.4, kind: "revolving", marks: ["VERIFIED"], asof: "2026-11-01", source: "plaid", prev: null, lines: [], terms: { apr: 19.99, min_payment: 25, due_day: 3, credit_limit: 2000, promo_apr: 0, promo_end: "2027-03-31", deferred_interest: true, asof: "2026-10-20" } },
+      { section: "Cards (detail)", id: "L9", name: "Flex plan", balance: 360, kind: "installment", marks: ["VERIFIED"], asof: "2026-11-01", source: "card", prev: null, lines: ["installment"], terms: { apr: 0, min_payment: 30, asof: "2026-11-01" } },
       { section: "Cards (detail)", id: "L10", name: "Gamma", balance: 220, marks: ["HOLD"], asof: "2026-10-02", source: "card", prev: null, lines: [], terms: { apr: 22.9, min_payment: 25, due_day: 21, credit_limit: 500, asof: "2026-10-02" } },
       { section: "Cards (detail)", id: "L4", name: "Store card", balance: null, marks: ["NEED YOU"], asof: "", source: "note", prev: 80, lines: ["statement missing"] },
-      { section: "Loans", id: "N1", name: "Truck", balance: 8400, marks: ["PAST DUE"], asof: "2026-08-01", source: "note", prev: null, lines: ["past due"], terms: { apr: 9.5, min_payment: 285, due_day: 1, asof: "2026-08-01" } },
-      { section: "Assets beyond cash", id: "A14", name: "House", balance: 12000, marks: ["HOLD"], asof: "", source: "note", prev: null, lines: ["never"] }
+      { section: "Loans", id: "N1", name: "Truck", balance: 8400, kind: "installment", marks: ["PAST DUE"], asof: "2026-08-01", source: "note", prev: null, lines: ["past due"], terms: { apr: 9.5, min_payment: 285, due_day: 1, asof: "2026-08-01" } },
+      { section: "Loans", id: "N3", name: "Mortgage", balance: 12000, kind: "mortgage", marks: ["VERIFIED"], asof: "2026-11-01", source: "statement", prev: null, lines: [], draft: 70, terms: { apr: 6, pi: 100, escrow: 40, draft: 70, frequency: "biweekly", due_day: 1, asof: "2026-11-01", extra_principal_policy: "unknown", unapplied: "hold_until_full_payment" } },
+      { section: "Assets beyond cash", id: "A14", name: "House", balance: 12000, gross: 12000, equity: 4000, marks: ["HOLD"], asof: "", source: "note", prev: null, lines: ["never"] },
+      { section: "Assets beyond cash", id: "A7", name: "401(k)", balance: 8000, gross: 8000, marks: ["VERIFIED"], asof: "2026-11-01", source: "note", prev: null, lines: [] },
+      { section: "Assets beyond cash", id: "A7e", name: "ESOP", balance: null, unknown: true, marks: ["VERIFIED"], asof: "2026-11-01", source: "note", prev: null, lines: ["value unknown"] }
     ],
     sections: [
       { title: "Cash flow (Plaid)", body: "Structured months live on Flow. This page is the written ledger." },
@@ -78,6 +82,9 @@ export function demoBook() {
       ]
     },
     networth: {
+      status: "INCOMPLETE",
+      missing: ["ESOP"],
+      basis: "posted",
       snapshots: [
         { when: "2026-08-01", assets: 14000, liabilities: 12000, net: 2000, source: "sidecar" },
         { when: "2026-09-01", assets: 14800, liabilities: 11800, net: 3000, source: "log" },

@@ -88,6 +88,19 @@ test("filters match section, mark, search, and pin", () => {
   );
 });
 
+test("revolving bars use posted balances and leave Flex and unknowns out of the total", () => {
+  const cards = [
+    { section: "Cards (detail)", id: "L8", name: "Alpha", balance: 640, kind: "revolving", marks: [] },
+    { section: "Cards (detail)", id: "L9", name: "Flex plan", balance: 300, kind: "installment", marks: [] },
+    { section: "Cards (detail)", id: "L4", name: "Depot", balance: null, unknown: true, autopay: 25, kind: "revolving", marks: [] },
+  ];
+  const html = compositionHtml(cards);
+  assert.match(html, /data-balance="640"/);
+  assert.match(html, /unknown/);
+  assert.doesNotMatch(html, /data-balance="300"/);
+  assert.doesNotMatch(html, /data-balance="25"/);
+});
+
 test("charts use decrypted card numbers and no stand-in balances", () => {
   const html = compositionHtml(book().cards);
   const balances = [...html.matchAll(/data-balance="([^"]*)"/g)].map((match) => match[1]);

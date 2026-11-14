@@ -18,14 +18,16 @@ export function baseline(total) {
 }
 
 export function homeHeroHtml(book) {
-  const w = wayOut(book), plan = w.methods[w.chosen], base = baseline(w.total);
-  const paid = base ? Math.max(0, base.total - w.total) : 0, pct = base && base.total > 0 ? (paid / base.total) * 100 : 0;
+  const w = wayOut(book), plan = w.methods[w.chosen];
+  const owed = w.total != null ? w.total : w.scheduleTotal;
+  const base = baseline(owed || 0);
+  const paid = base && owed != null ? Math.max(0, base.total - owed) : 0, pct = base && base.total > 0 ? (paid / base.total) * 100 : 0;
   const dated = plan && plan.ok && w.known.length && !w.missing.length;
   const head = !w.debts.length ? `<p class="wo-big">No debt in the book.</p>`
     : dated ? `<p class="wo-kicker">Debt-free by</p><p class="wo-big">${addMonths(plan.months.length)}</p>`
-    : `<p class="wo-kicker">Owed today</p><p class="wo-big num">${money(w.total, 0)}</p>`;
+    : `<p class="wo-kicker">Owed today</p><p class="wo-big num">${w.total == null ? '<span class="pending">unknown</span>' : money(w.total, 0)}</p>`;
   const sub = !w.debts.length ? "" : dated
-    ? `${plan.months.length} months at ${money(w.budget, 0)} a month · ${money(plan.total_interest, 0)} of interest still to pay · ${money(w.total, 0)} owed today`
+    ? `${plan.months.length} months at ${money(w.budget, 0)} a month · ${money(plan.total_interest, 0)} of interest still to pay · ${money(w.scheduleTotal, 0)} in this plan${w.mortgages.length ? " · mortgage principal is separate" : ""}`
     : w.missing.length ? `${w.missing.length} of ${w.debts.length} debts still need their APR and minimum in the book before Midas can date the way out.` : "";
   return `<section class="wayout glass lit" aria-label="The way out">
     <p class="kicker">The way out</p>
@@ -49,9 +51,26 @@ function methodCard(key, sim, w, chosen) {
   </button>`;
 }
 
+function mortgageBlock(w) {
+  const rows = w.mortgageForecasts || [];
+  if (!rows.length) return "";
+  return rows.map(({ debt, forecast }) => {
+    const first = (forecast.rows || [])[0];
+    const second = (forecast.rows || [])[1];
+    return `<article class="card glass" data-mortgage="${esc(debt.id)}" data-mortgage-estimate="true" data-mortgage-posted="false">
+      <p class="kicker">Mortgage · estimate from the statement, not a lender quote</p>
+      <h3>${esc(debt.name)}</h3>
+      <p class="meta">Principal ${debt.balance == null ? "unknown" : money(debt.balance)}. A full payment is P&amp;I ${forecast.pi == null ? "unknown" : money(forecast.pi)} plus escrow ${forecast.escrow == null ? "unknown" : money(forecast.escrow)}. Interest uses the monthly rate. Half a biweekly draft is held until the pair is a full payment. The statement due is not a second cash out. Escrow is not principal and is not a new expense when taxes or insurance are paid. Extra principal is ${esc(forecast.accelerated_payoff || "conditional")}.</p>
+      ${first ? `<p class="meta" data-draft="1" data-applied="${first.applied ? "true" : "false"}">First draft ${money(first.cash_out)} · principal ${money(first.principal)}</p>` : ""}
+      ${second ? `<p class="meta" data-draft="2" data-applied="${second.applied ? "true" : "false"}">Paired draft ${money(second.cash_out)} · principal ${money(second.principal)}</p>` : ""}
+      <p class="meta">${forecast.payoff_month ? `Payoff estimate ${addMonths(forecast.payoff_month)}, not posted.` : forecast.missing && forecast.missing.length ? `No payoff date. Missing ${esc(forecast.missing.join(", "))}.` : "No verified payoff date."}</p>
+    </article>`;
+  }).join("");
+}
+
 export function planHtml(book, budget, method) {
   const w = wayOut(book, budget), chosen = method && w.methods[method] ? method : w.chosen, sim = w.methods[chosen];
-  const rows = w.debts.map((d) => {
+  const rows = w.debts.filter((d) => !d.mortgage).map((d) => {
     const m = sim && sim.payoff_month ? sim.payoff_month[d.id] : null;
     return { d, m };
   }).sort((a, b) => (a.m ?? 9999) - (b.m ?? 9999));
@@ -72,9 +91,10 @@ export function planHtml(book, budget, method) {
       <ol class="timeline">${rows.map(({ d, m }) => `<li class="${d.missing ? "missing" : ""}">
         <div class="tl-head"><b>${esc(d.name)}</b> <span class="id">${esc(d.id)}</span><span class="tl-when">${d.missing ? "terms missing" : m ? `gone ${addMonths(m)}` : "—"}</span></div>
         <div class="tl-bar"><i style="width:${m ? Math.max(3, (m / span) * 100).toFixed(1) : 0}%"></i></div>
-        <p class="meta">${money(d.balance)}${d.apr != null ? ` · ${d.apr} % APR` : ""}${d.min != null ? ` · minimum ${money(d.min, 0)}` : ""}${d.promo_end ? ` · promo ${d.promo_apr ?? 0} % to ${esc(d.promo_end)}` : ""}${d.missing ? " · add `- terms: APR … · min … · as of …` under this card in the book" : ""}</p>
+        <p class="meta">${d.balance == null ? "unknown" : money(d.balance)}${d.apr != null ? ` · purchase APR ${d.apr}%` : ""}${d.min != null ? ` · minimum ${money(d.min, 0)}` : ""}${d.promo_end ? ` · promo ${d.promo_apr ?? 0}% through ${esc(d.promo_end)}, not the due day` : ""}${d.due_day != null ? ` · due day ${d.due_day}` : ""}${d.promo_end || d.deferred_interest ? " · Deferred interest can apply if the balance is unpaid by the promo end." : ""}${d.missing ? " · add `- terms: APR … · min … · as of …` under this card in the book" : ""}</p>
       </li>`).join("")}</ol>
-      <p class="meta">Interest each month = balance × APR ÷ 12, rounded to the cent. Promo rates are shown, not yet modelled. The plan uses only what the book says.</p>`}
+      ${mortgageBlock(w)}
+      <p class="meta">Interest each month = balance × APR ÷ 12, rounded to the cent. A promo rate is not the purchase APR, and the promo end is not the payment due date. Deferred interest can apply if a promo balance is unpaid at the promo end. Promo rates are shown, not modelled as the payoff. The plan uses only what the book says.</p>`}
     </div>
   </section>`;
 }

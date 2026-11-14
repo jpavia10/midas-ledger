@@ -25,11 +25,18 @@ import re
 import sys
 
 MONEY = r"\$([\d,]+(?:\.\d{1,2})?)"
+# Letter suffixes are part of the id. A6, A6b and A6r are three accounts.
+ID_RE = r"[A-Z]\d+[a-z]*"
 MARK_KEYS = [
     "VERIFIED", "GROK", "APP", "SMS", "STALE?", "NEED YOU", "HOLD",
-    "SCREENSHOT", "GAP", "OK", "PAST DUE", "PLAID",
+    "SCREENSHOT", "GAP", "OK", "PAST DUE", "PLAID", "DUPLICATE",
 ]
-CARD_RE = re.compile(r"^### ((?:[A-Z]\d+b?))\s*(?:·)?\s*(.*?)\s+[—–-]\s+(.*)$")
+CARD_RE = re.compile(rf"^### ({ID_RE})\s*(?:·)?\s*(.*?)\s+[—–-]\s+(.*)$")
+_MONEY_TOKEN = re.compile(
+    r"(?P<sign>[-−–])?\s*\*\*\s*(?P<sign2>[-−–])?\s*\$\s*(?P<num>[\d,]+(?:\.\d{1,2})?)\s*\*\*"
+    r"|"
+    r"(?P<sign3>[-−–])?\s*\$(?P<num2>[\d,]+(?:\.\d{1,2})?)"
+)
 MONTH_NAMES = {
     "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
     "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
@@ -171,7 +178,7 @@ def labeled_amounts(text, bold_only=False):
 
 
 def pick_balance(amounts):
-    """Prefer available. Never treat current or a harvest figure as spendable."""
+    """Cash only: prefer available. Never treat current or a harvest figure as spendable."""
     avail = [a for a in amounts if a[0] == "avail"]
     plain = [a for a in amounts if a[0] == "plain"]
     current = [a for a in amounts if a[0] == "current"]
@@ -179,6 +186,313 @@ def pick_balance(amounts):
     cur = current[-1][1] if current else None
     av = avail[-1][1] if avail else None
     return balance, av, cur
+
+
+def canonical_section(title):
+    """Group cards into the sections the page already renders."""
+    raw = (title or "").strip()
+    text = raw.lower()
+    if "cash flow" in text or "net worth" in text or text.startswith("recent") or "utilit" in text:
+        return raw
+    if "card" in text:
+        return "Cards (detail)"
+    if "loan" in text:
+        return "Loans"
+    if (
+        "nonliquid" in text or "non-liquid" in text or "beyond cash" in text
+        or text == "assets" or text.startswith("assets")
+    ):
+        return "Assets beyond cash"
+    if text == "cash" or text.startswith("cash"):
+        return "Cash"
+    return raw
+
+
+def scan_money(text):
+    """Amounts in reading order, each with the label on its own side of the previous amount."""
+    found = []
+    prev = 0
+    for match in _MONEY_TOKEN.finditer(text or ""):
+        raw = match.group("num") or match.group("num2")
+        value = num(raw)
+        if value is None:
+            prev = match.end()
+            continue
+        sign = bool(match.group("sign") or match.group("sign2") or match.group("sign3"))
+        before = text[prev:match.start()]
+        cut = max(before.rfind("\n"), before.rfind("·"), before.rfind("|"))
+        if cut >= 0:
+            before = before[cut + 1:]
+        after = text[match.end():match.end() + 32]
+        after = re.split(r"[\n·\|]|\$|\*\*", after)[0]
+        found.append((value, sign, before, after))
+        prev = match.end()
+    return found
+
+
+def _words(before, after):
+    text = re.sub(r"[*$]+", " ", before or "")
+    text = re.sub(r"\s+", " ", text).strip().lower()
+    if re.search(r"[a-z]", text):
+        return text
+    return re.sub(r"\s+", " ", re.sub(r"[*$]+", " ", after or "")).strip().lower()
+
+
+def debt_role(before, after):
+    """What a dollar figure is on a card or loan. The outstanding balance is the only figure that may be the bar."""
+    label = _words(before, after)
+    if re.search(r"auto[\s-]?pay", label):
+        return "autopay"
+    if re.search(r"minimum|\bmin\b", label):
+        return "minimum"
+    if re.search(r"amount due|payment due|\bdue\b", label):
+        return "due"
+    if re.search(r"bi-?weekly|half[\s-]?draft|\bdraft\b", label):
+        return "draft"
+    if re.search(r"principal\s+and\s+interest|\bp\s*&\s*i\b|\bp&i\b", label):
+        return "pi"
+    if re.search(r"\bescrow\b|\binsurance\b", label):
+        return "escrow"
+    if re.search(r"statement balance|last statement", label):
+        return "statement"
+    if re.search(r"prior|previous|\bold\b|harvest|stale", label):
+        return "prior"
+    if re.search(r"projected|pending payoff|after pending|\bpending\b", label):
+        return "projected"
+    if re.search(r"\bchange\b|decreas|increas", label):
+        return "change"
+    if re.search(r"available|\bavail\b|credit limit|\blimit\b|tradable|read[\s-]?only", label):
+        return "ignore"
+    if re.search(r"outstanding|\bposted\b|\bprincipal\b|current balance|\bbalance\b|\bowed\b", label):
+        return "balance"
+    return "plain"
+
+
+def _first(items, role):
+    for item_role, value in items:
+        if item_role == role:
+            return value
+    return None
+
+
+def apply_debt_body(card, body):
+    """Outstanding balance is the first labeled balance, else the first unlabeled amount.
+
+    Autopay, minimum, amount due, a prior balance, a biweekly draft, escrow and a
+    pending-payoff projection are stored beside it and never become the balance.
+    A minimum of zero is kept. An unknown minimum is not filled from autopay.
+    """
+    found = []
+    rejected = False
+    for line in (body or "").splitlines():
+        if re.match(r"^\s*terms:", line, re.I):
+            continue
+        for value, sign, before, after in scan_money(line):
+            role = "change" if sign else debt_role(before, after)
+            if role in ("autopay", "minimum", "due", "draft", "prior", "statement", "projected", "pi", "escrow"):
+                rejected = True
+            found.append((role, value))
+    balance = _first(found, "balance")
+    if balance is None:
+        balance = _first(found, "plain")
+    if balance is not None:
+        card["balance"] = balance
+    autopay = _first(found, "autopay")
+    if autopay is not None:
+        card["autopay"] = autopay
+    minimum = _first(found, "minimum")
+    if minimum is not None:
+        card["minimum_due"] = minimum
+    due = _first(found, "due")
+    if due is not None:
+        card["amount_due"] = due
+    prior = _first(found, "prior")
+    if prior is not None:
+        card["prior_balance"] = prior
+    statement = _first(found, "statement")
+    if statement is not None:
+        card["statement_balance"] = statement
+    projected = _first(found, "projected")
+    if projected is not None:
+        card["projected"] = projected
+    draft = _first(found, "draft")
+    if draft is not None:
+        card["draft"] = draft
+    if re.search(r"\bunknown\b|\bn/a\b|\btbd\b|\bnot known\b", body or "", re.I) and balance is None:
+        card["unknown"] = True
+    card["_rejected_debt_amount"] = rejected and balance is None
+
+
+def _component_name(line):
+    stripped = (line or "").strip()
+    named = re.match(
+        r"^(car|bike|bicycle|truck|suv|motorcycle|vehicle)\b\s*[:\-]?\s*(.*)$",
+        stripped,
+        re.I,
+    )
+    if named:
+        return named.group(1).lower()
+    colon = re.match(r"^([A-Za-z][\w' .-]{0,24}?)\s*:\s+\S", stripped)
+    if not colon:
+        return None
+    name = colon.group(1).strip()
+    if re.search(r"gross|equity|cost|total|value|balance|terms|first|market|principal", name, re.I):
+        return None
+    return name
+
+
+def apply_asset_body(card, body):
+    """Gross value is the asset figure. Equity, cost and a partial vehicle list are not.
+
+    A brokerage total is not added to the cash and securities already inside it.
+    Read-only and tradable are not reasons to drop the account or to use a subset.
+    Unknown stays unknown and is not stored as zero.
+    """
+    components = []
+    gross = equity = cost = total = None
+    parts = []
+    part_unknown = False
+    unlabeled = []
+    said_unknown = False
+    for line in (body or "").splitlines():
+        if re.match(r"^\s*terms:", line, re.I):
+            continue
+        low = line.lower()
+        name = _component_name(line)
+        amounts = [(value, before, after) for value, sign, before, after in scan_money(line) if not sign]
+        unknown_line = bool(re.search(r"\bunknown\b|\bn/a\b|\btbd\b|\bnot known\b|\?", low))
+        if name and (unknown_line or amounts):
+            if unknown_line or not amounts:
+                components.append({"name": name, "gross": None, "unknown": True})
+            else:
+                label = _words(amounts[0][1], amounts[0][2])
+                if re.search(r"\bcost\b|first cost|purchase", label) and not re.search(r"gross|value|market", label):
+                    components.append({"name": name, "gross": None, "cost": amounts[0][0], "unknown": True})
+                else:
+                    components.append({"name": name, "gross": amounts[0][0], "unknown": False})
+            continue
+        if unknown_line and not amounts:
+            said_unknown = True
+            continue
+        for value, before, after in amounts:
+            label = _words(before, after)
+            if re.search(r"available|\bavail\b|tradable|read[\s-]?only", label):
+                continue
+            if re.search(r"\bequity\b", label):
+                equity = value
+                continue
+            if re.search(r"first cost|purchase price|cost basis|\bcost\b", label) and not re.search(
+                r"gross|market|current value|\bvalue\b", label
+            ):
+                cost = value
+                continue
+            if re.search(r"\b(total|aggregate|portfolio)\b", label):
+                total = value
+                continue
+            if re.search(r"gross|market|valuation|zillow|appraised|current value|\bvalue\b", label):
+                gross = value
+                continue
+            if re.search(r"\b(cash|securities|stocks|bonds|positions)\b", label):
+                parts.append(value)
+                continue
+            unlabeled.append(value)
+        if unknown_line and re.search(r"\b(cash|securities|stocks|bonds|positions)\b", low):
+            part_unknown = True
+    if cost is not None:
+        card["cost"] = cost
+    if equity is not None:
+        card["equity"] = equity
+    if components:
+        card["components"] = components
+        if any(item.get("unknown") or item.get("gross") is None for item in components):
+            card["balance"] = None
+            card["unknown"] = True
+        else:
+            card["balance"] = r2(sum(item["gross"] for item in components))
+            card["gross"] = card["balance"]
+        return
+    if part_unknown or (said_unknown and total is None and gross is None):
+        card["balance"] = None
+        card["unknown"] = True
+        if parts:
+            card["parts"] = parts
+        return
+    if total is not None:
+        card["balance"] = total
+        card["gross"] = total
+    elif gross is not None:
+        card["balance"] = gross
+        card["gross"] = gross
+    elif unlabeled:
+        card["balance"] = unlabeled[0]
+        card["gross"] = unlabeled[0]
+    elif parts:
+        card["balance"] = r2(sum(parts))
+    if parts:
+        card["parts"] = parts
+
+
+def card_kind(card):
+    section = card.get("section") or ""
+    name = card.get("name") or ""
+    blob = name + "\n" + "\n".join(card.get("lines") or [])
+    terms = card.get("terms") or {}
+    if section == "Cash":
+        return "cash"
+    if section == "Assets beyond cash":
+        return "asset"
+    mortgage = bool(re.search(r"\bmortgage\b", name, re.I)) or (
+        terms.get("frequency") == "biweekly" and (terms.get("pi") is not None or terms.get("escrow") is not None)
+    )
+    if section == "Loans" and mortgage:
+        return "mortgage"
+    if section == "Loans":
+        return "installment"
+    if section == "Cards (detail)":
+        if re.search(r"\bflex\b|\binstallment\b", blob, re.I):
+            return "installment"
+        return "revolving"
+    return "other"
+
+
+def finish_cards(cards):
+    """Terms may name the principal. They must not turn a draft or an autopay into the balance or the minimum."""
+    counts = {}
+    for card in cards:
+        counts[card["id"]] = counts.get(card["id"], 0) + 1
+    for card in cards:
+        terms = dict(card.get("terms") or {})
+        if card.get("balance") is None and terms.get("principal") is not None:
+            card["balance"] = terms["principal"]
+        if (
+            card.get("minimum_due") is not None
+            and terms.get("min_payment") is None
+            and not terms.get("min_unknown")
+        ):
+            terms["min_payment"] = card["minimum_due"]
+        if terms.get("draft") is not None:
+            card["draft"] = terms["draft"]
+        if terms.get("frequency") == "biweekly":
+            terms["unapplied"] = "hold_until_full_payment"
+            terms.setdefault("extra_principal_policy", "unknown")
+        if terms:
+            card["terms"] = terms
+        elif "terms" in card and not card["terms"]:
+            card.pop("terms", None)
+        card["kind"] = card_kind(card)
+        rejected = card.pop("_rejected_debt_amount", False)
+        if (
+            card["kind"] in ("revolving", "installment", "mortgage")
+            and card.get("balance") is None
+            and not is_attention(card)
+            and (rejected or card.get("unknown"))
+        ):
+            card["unknown"] = True
+        if counts[card["id"]] > 1:
+            card["duplicate"] = True
+            if "DUPLICATE" not in (card.get("marks") or []):
+                card.setdefault("marks", []).append("DUPLICATE")
+    return cards
 
 
 def parse_holds(lines):
@@ -235,7 +549,7 @@ def parse_cards(lines):
     for ln in lines:
         m = re.match(r"^## (.+)", ln)
         if m:
-            sec = m.group(1).strip()
+            sec = canonical_section(m.group(1).strip())
             card = None
             continue
         m = CARD_RE.match(ln)
@@ -258,11 +572,11 @@ def parse_cards(lines):
             card["lines"].append(ln[2:].strip())
     for c in cards:
         body = "\n".join(c["lines"])
-        if c["id"] == "A16":
-            m = re.search(r"current value \*\*" + MONEY, body, re.I)
-            if m:
-                c["balance"] = num(m.group(1))
-        elif c["id"] != "A8":
+        if c.get("section") in ("Cards (detail)", "Loans"):
+            apply_debt_body(c, body)
+        elif c.get("section") == "Assets beyond cash":
+            apply_asset_body(c, body)
+        else:
             bold = labeled_amounts(body, bold_only=True)
             loose = labeled_amounts(body)
             amounts = list(bold)
@@ -292,8 +606,6 @@ def parse_cards(lines):
             c.pop("available", None)
         dm = re.search(r"(\d{4}-\d{2}-\d{2}[^·]*)", c["status"])
         c["asof"] = dm.group(1).strip() if dm else None
-        if c["id"] == "A7":
-            c["name"] = "401(k)/ESOP"
     return cards
 
 
@@ -306,9 +618,12 @@ def parse_log(lines):
 
 
 def overlay_amounts(entry, cid):
-    """Every amount that belongs to this id, up to the next account id."""
+    """Every amount that belongs to this id, up to the next account id.
+
+    The id keeps its letter suffix, so A6r is not read as A6.
+    """
     found = []
-    parts = re.split(r"\b([A-Z]\d+b?)\b", entry or "")
+    parts = re.split(rf"\b({ID_RE})\b", entry or "")
     idx = 1
     while idx + 1 < len(parts):
         if parts[idx] == cid:
@@ -343,10 +658,13 @@ def apply_overlay(cards, log):
     vm = re.search(r"v(\d+)", overlay_src)
     ver = vm.group(1) if vm else "?"
     for c in cards:
-        if c.get("section") not in ("Cash", "Cards (detail)", "Assets beyond cash"):
+        if c.get("section") in ("Cards (detail)", "Loans"):
+            # A harvest note must not replace the card's own outstanding balance,
+            # and it must not fill one in when the card never stated one.
             mark_stale_from_overlay(c, overlay_src)
             continue
-        if c["id"] == "A6" and "Roth" in (c.get("name") or ""):
+        if c.get("section") not in ("Cash", "Assets beyond cash"):
+            mark_stale_from_overlay(c, overlay_src)
             continue
         if is_fresh_plaid(c):
             continue
@@ -385,49 +703,143 @@ def mark_stale_from_overlay(card, overlay_src):
         card["marks"].append("STALE?")
 
 
+def _log_chrono(log):
+    """Date order, not file order. Undated lines stay in place ahead of dated ones."""
+    rows = []
+    for idx, entry in enumerate(log or []):
+        dated = re.search(r"(\d{4}-\d{2}-\d{2})", entry)
+        rows.append((dated.group(1) if dated else "", idx, entry))
+    rows.sort(key=lambda row: (row[0], row[1]))
+    return rows
+
+
+def _stress_score(entry):
+    """The score after the arrow. Spaces around the arrow are optional."""
+    match = re.search(r"stress\s*:?\s*(\d{3})\s*(?:→|->|to)\s*(\d{3})", entry or "", re.I)
+    if match:
+        return int(match.group(2))
+    match = re.search(r"stress\s*:?\s*(\d{3})\b", entry or "", re.I)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def _revolving_figures(entry):
+    """Posted revolving and a pending-payoff projection are different numbers."""
+    posted = None
+    projected = None
+    text = entry or ""
+    for match in re.finditer(
+        r"(posted|projected|pending payoff|after pending)?\s*revolving\s*:?\s*\$\s*([\d,]+(?:\.\d+)?)",
+        text,
+        re.I,
+    ):
+        kind = (match.group(1) or "").lower()
+        value = num(match.group(2))
+        if kind in ("projected", "pending payoff", "after pending"):
+            projected = value
+        else:
+            posted = value
+    for match in re.finditer(
+        r"(?:projected revolving|revolving projected|pending payoff|after pending)\s*:?\s*\$\s*([\d,]+(?:\.\d+)?)",
+        text,
+        re.I,
+    ):
+        projected = num(match.group(1))
+    if re.search(r"revolving\s*:?\s*\$\s*[\d,]+(?:\.\d+)?\s+projected\b", text, re.I):
+        tail = re.search(
+            r"revolving\s*:?\s*\$\s*[\d,]+(?:\.\d+)?\s+projected\s*:?\s*\$\s*([\d,]+(?:\.\d+)?)",
+            text,
+            re.I,
+        )
+        if tail:
+            projected = num(tail.group(1))
+    return posted, projected
+
+
 def parse_headline(md, log):
-    head = {"stress": None, "banked": None, "revolving": None, "floor": 3000}
+    head = {
+        "stress": None,
+        "banked": None,
+        "revolving": None,
+        "floor": 3000,
+        "revolving_basis": "posted",
+    }
     logged_banked = None
-    for entry in log:
-        m = re.search(r"banked(?: liquid)? \$([\d,\.]+)", entry, re.I)
-        if m:
-            logged_banked = num(m.group(1))
+    stress_asof = ""
+    revolving_asof = ""
+    for when, _idx, entry in _log_chrono(log):
+        match = re.search(r"banked(?:\s+liquid)?\s*:?\s*\$([\d,\.]+)", entry, re.I)
+        if match:
+            logged_banked = num(match.group(1))
             head["banked"] = logged_banked
-        m = re.search(r"revolving \$([\d,\.]+)", entry, re.I)
-        if m:
-            head["revolving"] = num(m.group(1))
-        m = re.search(r"stress (?:\d+ → )?(\d{3})", entry, re.I)
-        if m:
-            head["stress"] = int(m.group(1))
+        posted, projected = _revolving_figures(entry)
+        if projected is not None:
+            head["revolving_projected"] = projected
+            head["revolving_projected_asof"] = when or None
+        if posted is not None:
+            head["revolving"] = posted
+            head["revolving_source"] = "log"
+            revolving_asof = when
+        score = _stress_score(entry)
+        if score is not None:
+            head["stress"] = score
             head["stress_note"] = entry[:160]
+            stress_asof = when
     if head["stress"] is None:
-        m = re.search(r"\*\*(\d{3})\*\* / 1000", md)
-        if m:
-            head["stress"] = int(m.group(1))
-    m = re.search(r"Floor goal: \*\*" + MONEY, md)
-    if m:
-        head["floor"] = num(m.group(1))
+        match = re.search(r"\*\*(\d{3})\*\* / 1000", md)
+        if match:
+            head["stress"] = int(match.group(1))
+    match = re.search(r"Floor goal: \*\*" + MONEY, md)
+    if match:
+        head["floor"] = num(match.group(1))
     if logged_banked is not None:
         head["logged_banked"] = logged_banked
+    if stress_asof:
+        head["stress_asof"] = stress_asof
+    if revolving_asof:
+        head["revolving_asof"] = revolving_asof
     return head
+
+
+def _history_score(entry):
+    match = re.search(
+        r"^(\d{4}-\d{2}-\d{2}).*?stress\s*:?\s*(\d{3})\s*(?:→|->|to)\s*(\d{3})",
+        entry or "",
+        re.I,
+    )
+    if match:
+        return match.group(1), int(match.group(3))
+    match = re.search(r"^(\d{4}-\d{2}-\d{2}).*?stress\s*:?\s*(\d{3})\b", entry or "", re.I)
+    if match:
+        return match.group(1), int(match.group(2))
+    return None, None
 
 
 def parse_history(lines, log, stress):
     hist = []
     for ln in lines:
-        m = re.match(r"^\|\s*\**([^|*]+?)\**\s*\|\s*\**(\d{3})\**\s*\|", ln)
-        if m and m.group(1).strip().lower() not in ("when", "night"):
-            hist.append({"when": m.group(1).strip(), "score": int(m.group(2))})
-    for entry in log:
-        m = re.search(r"^(\d{4}-\d{2}-\d{2}) v\d+.*?stress (\d{3}) → (\d{3})", entry)
-        if m and not any(h["when"].startswith(m.group(1)) for h in hist):
-            d = datetime.date.fromisoformat(m.group(1))
-            lab = d.strftime("%b ") + str(d.day)
-            if not any(h["when"].startswith(lab) and h["score"] == int(m.group(3)) for h in hist):
-                hist.append({"when": lab + " (log)", "score": int(m.group(3))})
+        match = re.match(r"^\|\s*\**([^|*]+?)\**\s*\|\s*\**(\d{3})\**\s*\|", ln)
+        if match and match.group(1).strip().lower() not in ("when", "night"):
+            hist.append({"when": match.group(1).strip(), "score": int(match.group(2))})
+    points = []
+    for when, _idx, entry in _log_chrono(log):
+        dated, score = _history_score(entry)
+        if dated and score is not None:
+            points.append((dated, score))
+    for dated, score in points:
+        if any(h["when"].startswith(dated) for h in hist):
+            continue
+        day = datetime.date.fromisoformat(dated)
+        lab = day.strftime("%b ") + str(day.day)
+        if any(h["when"].startswith(lab) and h["score"] == score for h in hist):
+            continue
+        hist.append({"when": lab + " (log)", "score": score, "date": dated})
     hist = [h for h in hist if h["when"] != "NIGHT HOLD"]
     if hist and stress and hist[-1]["score"] != stress:
         hist.append({"when": "now", "score": stress})
+    for point in hist:
+        point.pop("date", None)
     return hist
 
 
@@ -502,21 +914,150 @@ def flow_from_bucket(bucket, mid, label, stub):
     else:
         row["net"] = compute_net(row)
     cats = bucket.get("categories")
+    items = []
     if isinstance(cats, dict):
-        row["categories"] = sorted(
-            ({"name": k, "amount": num(v) or 0.0} for k, v in cats.items()),
-            key=lambda item: item["amount"],
-            reverse=True,
-        )
+        for key, value in cats.items():
+            amount = _stated_amount(value)
+            if amount is None:
+                continue
+            items.append({"name": key, "amount": amount})
+        items.sort(key=lambda item: item["amount"], reverse=True)
     elif isinstance(cats, list):
-        row["categories"] = [
-            {"name": c.get("name"), "amount": num(c.get("amount")) or 0.0}
-            for c in cats if isinstance(c, dict)
-        ]
-    lifestyle = row["lifestyle"] or 0
-    cat_sum = r2(sum(c["amount"] for c in row.get("categories") or []))
-    row["burn"] = cat_sum if row.get("categories") else lifestyle
+        for cat in cats:
+            if not isinstance(cat, dict):
+                continue
+            amount = _stated_amount(cat.get("amount"))
+            if amount is None:
+                continue
+            item = {"name": cat.get("name") or "", "amount": amount}
+            if cat.get("group"):
+                item["group"] = cat.get("group")
+            items.append(item)
+    if items:
+        row["categories"] = items
+    stated = _stated_amount(bucket.get("categories_total"))
+    if stated is None:
+        stated = _stated_amount(bucket.get("merchant_spend"))
+    cat_sum = r2(sum(item["amount"] for item in items)) if items else None
+    if stated is not None and items and stated > cat_sum + 0.001:
+        items.append({"name": "Uncategorized", "amount": r2(stated - cat_sum), "group": "remainder"})
+        row["categories"] = items
+        row["categories_partial"] = True
+        row["burn"] = stated
+    elif items:
+        row["burn"] = stated if stated is not None else cat_sum
+    else:
+        row["burn"] = row["lifestyle"] or 0
     return row
+
+
+def _stated_amount(value):
+    """Zero is a measured zero. None and blank are no data."""
+    if value is None:
+        return None
+    if isinstance(value, str) and not value.strip():
+        return None
+    return num(value)
+
+
+def cashflow_from_monthly_categories(doc):
+    """Read a midas.monthly_categories.v1 rollup. See docs/BOOK_SCHEMA.md."""
+    coverage = doc.get("coverage") if isinstance(doc.get("coverage"), dict) else {}
+    cover = {
+        "complete": bool(coverage.get("complete")),
+        "accounts_linked": list(coverage.get("accounts_linked") or []),
+        "accounts_missing": list(coverage.get("accounts_missing") or []),
+        "cash_coverage": coverage.get("cash_coverage") or "unknown",
+        "note": coverage.get("note") or "",
+    }
+    months = []
+    cat_months = []
+    for bucket in doc.get("months") or []:
+        if not isinstance(bucket, dict):
+            continue
+        mid = str(bucket.get("month") or bucket.get("id") or "")
+        if not re.fullmatch(r"\d{4}-\d{2}", mid):
+            continue
+        totals = bucket.get("totals") if isinstance(bucket.get("totals"), dict) else {}
+        mtd = bool(bucket.get("mtd"))
+        row = {"id": mid, "label": month_label(mid), "stub": mtd}
+        if bucket.get("asof"):
+            row["asof"] = bucket["asof"]
+        no_data = []
+        for src, dest in (
+            ("income", "income"),
+            ("other_in", "other_in"),
+            ("merchant_spend", "lifestyle"),
+            ("debt_service", "debt"),
+            ("fees", "fees"),
+            ("atm", "atm"),
+        ):
+            if src not in totals or totals.get(src) is None:
+                row[dest] = None
+                no_data.append("merchant_spend" if dest == "lifestyle" else dest)
+            else:
+                row[dest] = num(totals.get(src))
+        excluded = {}
+        for key in ("transfers_excluded", "loan_proceeds_excluded"):
+            if key in totals and totals.get(key) is not None:
+                excluded[key] = num(totals.get(key))
+        if excluded:
+            row["excluded"] = excluded
+        if no_data:
+            row["no_data"] = no_data
+            row["net"] = None
+        else:
+            row["net"] = compute_net(row)
+        items = []
+        for cat in bucket.get("categories") or []:
+            if not isinstance(cat, dict):
+                continue
+            amount = _stated_amount(cat.get("amount"))
+            if amount is None:
+                continue
+            item = {"name": cat.get("name") or "", "amount": amount}
+            if cat.get("group"):
+                item["group"] = cat["group"]
+            items.append(item)
+        merchant = row.get("lifestyle")
+        cat_sum = r2(sum(item["amount"] for item in items)) if items else None
+        if merchant is not None and cat_sum is not None and merchant > cat_sum + 0.001:
+            items.append({
+                "name": "Uncategorized",
+                "amount": r2(merchant - cat_sum),
+                "group": "remainder",
+            })
+            row["categories_partial"] = True
+        if items:
+            row["categories"] = items
+            row["burn"] = merchant if merchant is not None else cat_sum
+            cat_months.append({
+                "id": mid,
+                "label": row["label"],
+                "stub": mtd,
+                "items": items,
+                "burn": row.get("burn"),
+                "partial": bool(row.get("categories_partial")),
+            })
+        elif merchant is not None:
+            row["burn"] = merchant
+        months.append(row)
+    months.sort(key=lambda row: row["id"])
+    cat_months.sort(key=lambda row: row["id"])
+    return {
+        "window": "",
+        "source": "midas.monthly_categories.v1",
+        "schema": "midas.monthly_categories.v1",
+        "coverage": cover,
+        "months": months,
+        "utilities": {"months": [], "providers": []},
+        "categories": {
+            "schema": "midas.monthly_categories.v1",
+            "coverage": cover,
+            "months": cat_months,
+        },
+        "pending": [],
+    }
 
 
 def utilities_from_rollup(doc, month_meta):
@@ -576,6 +1117,8 @@ def utilities_from_rollup(doc, month_meta):
 def cashflow_from_rollup(doc):
     if not isinstance(doc, dict):
         return None
+    if doc.get("schema") == "midas.monthly_categories.v1":
+        return cashflow_from_monthly_categories(doc)
     window = doc.get("window") or ""
     source = doc.get("source") or ""
     meta = []
@@ -696,13 +1239,28 @@ def _months_from_flow(body):
                 items = []
                 name_key = next(k for k in table[0] if "cat" in k.lower())
                 amt_key = next(k for k in table[0] if k != name_key)
+                stated = None
                 for rec in table:
-                    amount = num(rec.get(amt_key))
+                    name = rec.get(name_key) or ""
+                    amount = _stated_amount(rec.get(amt_key))
                     if amount is None:
                         continue
-                    items.append({"name": rec.get(name_key) or "", "amount": amount})
+                    if name.strip().lower() in ("total", "merchant spend", "merchant total"):
+                        stated = amount
+                        continue
+                    items.append({"name": name, "amount": amount})
+                got = r2(sum(item["amount"] for item in items)) if items else 0.0
+                if stated is not None and stated > got + 0.001:
+                    items.append({
+                        "name": "Uncategorized",
+                        "amount": r2(stated - got),
+                        "group": "remainder",
+                    })
+                    row["categories_partial"] = True
+                    row["burn"] = stated
+                else:
+                    row["burn"] = stated if stated is not None else got
                 row["categories"] = items
-                row["burn"] = r2(sum(i["amount"] for i in items))
                 continue
             name_key = next(iter(table[0].keys()))
             amt_key = [k for k in table[0].keys() if k != name_key]
@@ -845,14 +1403,27 @@ def merge_cashflow(ledger_cf, rollup_cf):
     cat_by = {m["id"]: m for m in (ledger_cf.get("categories") or {}).get("months") or []}
     for row in (rollup_cf.get("categories") or {}).get("months") or []:
         cat_by[row["id"]] = row
-    return _finalize_cashflow({
+    categories = {"months": [cat_by[k] for k in sorted(cat_by)]}
+    incoming = rollup_cf.get("categories") if isinstance(rollup_cf.get("categories"), dict) else {}
+    if not incoming and isinstance(ledger_cf.get("categories"), dict):
+        incoming = ledger_cf.get("categories") or {}
+    if incoming.get("schema"):
+        categories["schema"] = incoming["schema"]
+    if incoming.get("coverage"):
+        categories["coverage"] = incoming["coverage"]
+    merged = {
         "window": rollup_cf.get("window") or ledger_cf.get("window") or "",
         "source": rollup_cf.get("source") or ledger_cf.get("source") or "",
         "months": months,
         "utilities": utilities,
-        "categories": {"months": [cat_by[k] for k in sorted(cat_by)]},
+        "categories": categories,
         "pending": rollup_cf.get("pending") or [],
-    })
+    }
+    if rollup_cf.get("schema"):
+        merged["schema"] = rollup_cf["schema"]
+    if rollup_cf.get("coverage"):
+        merged["coverage"] = rollup_cf["coverage"]
+    return _finalize_cashflow(merged)
 
 
 def _finalize_cashflow(cf):
@@ -963,8 +1534,15 @@ def parse_networth_section(section):
             net = num(rec.get(net_key)) if net_key else None
             if net is None and assets is not None and liab is not None:
                 net = r2(assets - liab)
+            complete = assets is not None and liab is not None and net is not None
             snaps.append({
-                "when": m.group(1), "assets": assets, "liabilities": liab, "net": net, "source": "ledger",
+                "when": m.group(1),
+                "assets": assets,
+                "liabilities": liab,
+                "net": net if complete else None,
+                "source": "ledger",
+                "basis": "posted",
+                "complete": complete,
             })
         return snaps
     return snaps
@@ -982,6 +1560,7 @@ def snapshots_from_log(log):
             entry,
             re.I,
         )
+        projected = bool(re.search(r"projected|pending payoff|after pending", entry, re.I))
         if m:
             assets, liab = num(m.group(1)), num(m.group(2))
             snaps.append({
@@ -990,12 +1569,20 @@ def snapshots_from_log(log):
                 "liabilities": liab,
                 "net": r2((assets or 0) - (liab or 0)),
                 "source": "log",
+                "basis": "projected" if projected else "posted",
+                "complete": not projected,
             })
             continue
         m = re.search(r"(?:net worth|nw) \$([\d,\.]+)", entry, re.I)
         if m:
             snaps.append({
-                "when": when, "assets": None, "liabilities": None, "net": num(m.group(1)), "source": "log",
+                "when": when,
+                "assets": None,
+                "liabilities": None,
+                "net": num(m.group(1)),
+                "source": "log",
+                "basis": "projected" if projected else "posted",
+                "complete": not projected,
             })
     return snaps
 
@@ -1039,6 +1626,112 @@ def merge_snapshots(parts):
     return [by_when[k] for k in sorted(by_when)]
 
 
+def choose_revolving(head, cards):
+    """Posted revolving is not Flex installment debt and not a pending-payoff projection.
+
+    A complete set of newer card balances replaces an older log figure. A partial
+    set does not, because a missing card would understate the total.
+    """
+    head = dict(head)
+    flex = [
+        c for c in cards
+        if c.get("section") == "Cards (detail)" and c.get("kind") == "installment"
+        and isinstance(c.get("balance"), (int, float)) and not c.get("unknown")
+    ]
+    if flex:
+        head["installment"] = r2(sum(c["balance"] for c in flex))
+    revolving_cards = [c for c in cards if c.get("kind") == "revolving"]
+    unknown = [
+        c for c in revolving_cards
+        if c.get("unknown") or (c.get("balance") is None and not is_attention(c))
+    ]
+    known = [
+        c for c in revolving_cards
+        if isinstance(c.get("balance"), (int, float)) and not c.get("unknown")
+    ]
+    card_sum = None
+    card_when = ""
+    if known and not unknown:
+        card_sum = r2(sum(c["balance"] for c in known))
+        card_when = max((card_asof(c) for c in known), default="")
+    log_when = head.get("revolving_asof") or ""
+    if card_sum is not None and card_when and (not log_when or card_when > log_when):
+        head["revolving"] = card_sum
+        head["revolving_source"] = "cards"
+        head["revolving_asof"] = card_when
+    elif head.get("revolving") is None and card_sum is not None:
+        head["revolving"] = card_sum
+        head["revolving_source"] = "cards"
+        if card_when:
+            head["revolving_asof"] = card_when
+    head["revolving_basis"] = "posted"
+    return head
+
+
+def networth_position(cards, head):
+    """Known gross assets and posted liabilities. Unknown parts make the result INCOMPLETE.
+
+    Equity is not added, and it is not substituted for gross. A projected revolving
+    figure is not the liability. Flex installment sits with liabilities, not inside
+    the revolving total.
+    """
+    missing = []
+    assets = 0.0
+    liab = 0.0
+    have_a = False
+    have_l = False
+    for card in cards:
+        section = card.get("section")
+        attention = is_attention(card)
+        amount = card.get("balance")
+        known = isinstance(amount, (int, float)) and not card.get("unknown")
+        if section == "Cash":
+            if attention or not known:
+                continue
+            assets += amount
+            have_a = True
+        elif section == "Assets beyond cash":
+            if not known:
+                if not attention:
+                    missing.append(card.get("name") or card["id"])
+                continue
+            assets += amount
+            have_a = True
+        elif section == "Loans":
+            if not known:
+                if not attention:
+                    missing.append(card.get("name") or card["id"])
+                continue
+            if attention:
+                continue
+            liab += amount
+            have_l = True
+        elif section == "Cards (detail)" and card.get("kind") == "installment":
+            if known:
+                liab += amount
+                have_l = True
+            elif not attention:
+                missing.append(card.get("name") or card["id"])
+        elif section == "Cards (detail)" and card.get("kind") == "revolving" and card.get("unknown") and not attention:
+            missing.append(card.get("name") or card["id"])
+    if isinstance(head.get("revolving"), (int, float)):
+        liab += head["revolving"]
+        have_l = True
+    elif head.get("revolving_projected") is not None:
+        missing.append("posted revolving")
+    status = "INCOMPLETE" if missing else "COMPLETE"
+    net = r2(assets - liab) if status == "COMPLETE" and have_a and have_l else None
+    return {
+        "status": status,
+        "assets": r2(assets) if have_a else None,
+        "liabilities": r2(liab) if have_l else None,
+        "net": net,
+        "missing": missing,
+        "basis": "posted",
+        "projected_revolving": head.get("revolving_projected"),
+    }
+
+
 def stale_rows(cards):
     rows = []
     for c in cards:
@@ -1072,29 +1765,104 @@ _AMT = r"\$?\s*([0-9][0-9,]*(?:\.[0-9]+)?)"
 
 
 def parse_terms(line):
-    """'terms: APR 24.99% · min $95 · due 15 · limit $3,000 · promo 0% to 2027-03-31 · as of 2026-10-28' -> dict."""
+    """Split a terms bullet into purchase APR, promo APR, due day and promo end.
+
+    A promo rate is not the purchase APR. A promo end date is not the payment due day.
+    min $0 is a real minimum. 'min unknown' stays unknown and is not an autopay amount.
+    """
     body = re.sub(r"^\s*terms:\s*", "", line, flags=re.I)
+    deferred = bool(re.search(r"deferred[\s-]*interest", body, re.I))
     out = {}
+    purchase = None
+    bare_apr = None
     for part in [p.strip() for p in re.split(r"·|\|", body) if p.strip()]:
         low = part.lower()
-        m = re.match(r"apr\s*([0-9.]+)\s*%?", low)
-        if m:
-            out["apr"] = float(m.group(1)); continue
-        m = re.match(r"min(?:imum)?\s*" + _AMT, low)
-        if m:
-            out["min_payment"] = num(m.group(1)); continue
-        m = re.match(r"due\s*(?:day\s*)?([0-9]{1,2})\b", low)
-        if m and 1 <= int(m.group(1)) <= 31:
-            out["due_day"] = int(m.group(1)); continue
-        m = re.match(r"limit\s*" + _AMT, low)
-        if m:
-            out["credit_limit"] = num(m.group(1)); continue
-        m = re.match(r"promo\s*([0-9.]+)\s*%?\s*(?:to|until)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", low)
-        if m:
-            out["promo_apr"] = float(m.group(1)); out["promo_end"] = m.group(2); continue
-        m = re.match(r"as of\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", low)
-        if m:
-            out["asof"] = m.group(1); continue
+        match = re.match(r"(?:purchase|post-promo|post promo)\s+apr\s*([0-9.]+)\s*%?", low)
+        if match:
+            purchase = float(match.group(1))
+            continue
+        match = re.match(
+            r"promo(?:\s*apr)?\s*([0-9.]+)\s*%?\s*(?:to|until|through)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})",
+            low,
+        )
+        if match:
+            out["promo_apr"] = float(match.group(1))
+            out["promo_end"] = match.group(2)
+            continue
+        match = re.match(r"promo(?:\s*(?:end|expir\w*))\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", low)
+        if match:
+            out["promo_end"] = match.group(1)
+            continue
+        match = re.match(
+            r"apr\s*([0-9.]+)\s*%?\s*(?:to|until|through)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})",
+            low,
+        )
+        if match:
+            out["promo_apr"] = float(match.group(1))
+            out["promo_end"] = match.group(2)
+            continue
+        match = re.match(r"apr\s*([0-9.]+)\s*%?", low)
+        if match:
+            bare_apr = float(match.group(1))
+            continue
+        if re.match(r"min(?:imum)?(?:\s+due)?\s*(unknown|\?|n/a)\b", low):
+            out["min_unknown"] = True
+            continue
+        match = re.match(r"min(?:imum)?(?:\s+due)?\s*" + _AMT, low)
+        if match:
+            out["min_payment"] = num(match.group(1))
+            continue
+        match = re.match(r"due\s*(?:day\s*)?([0-9]{1,2})\b", low)
+        if match and "promo" not in low and 1 <= int(match.group(1)) <= 31:
+            out["due_day"] = int(match.group(1))
+            continue
+        match = re.match(r"limit\s*" + _AMT, low)
+        if match:
+            out["credit_limit"] = num(match.group(1))
+            continue
+        match = re.match(r"as of\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", low)
+        if match:
+            out["asof"] = match.group(1)
+            continue
+        match = re.match(r"(?:p\s*&\s*i|p&i|pi|principal and interest)\s*" + _AMT, low)
+        if match:
+            out["pi"] = num(match.group(1))
+            continue
+        match = re.match(r"escrow\s*" + _AMT, low)
+        if match:
+            out["escrow"] = num(match.group(1))
+            continue
+        match = re.match(r"(?:bi-?weekly\s+)?draft\s*" + _AMT, low)
+        if match:
+            out["draft"] = num(match.group(1))
+            continue
+        match = re.match(r"frequency\s+(bi-?weekly|monthly|weekly)", low)
+        if match:
+            freq = match.group(1).replace("-", "")
+            out["frequency"] = "biweekly" if "biweekly" in freq else freq
+            continue
+        match = re.match(r"principal\s*" + _AMT, low)
+        if match and "interest" not in low:
+            out["principal"] = num(match.group(1))
+            continue
+        match = re.match(r"extra principal\s+(unknown|none|annual|monthly)", low)
+        if match:
+            out["extra_principal_policy"] = match.group(1)
+            continue
+    if purchase is not None:
+        out["apr"] = purchase
+    elif bare_apr is not None:
+        if bare_apr == 0 and out.get("promo_end") and out.get("promo_apr") == 0:
+            pass
+        elif bare_apr == 0 and out.get("promo_end") and "promo_apr" not in out:
+            out["promo_apr"] = 0.0
+        else:
+            out["apr"] = bare_apr
+    if deferred:
+        out["deferred_interest"] = True
+    if out.get("frequency") == "biweekly":
+        out["unapplied"] = "hold_until_full_payment"
+        out.setdefault("extra_principal_policy", "unknown")
     return out
 
 
@@ -1129,10 +1897,10 @@ def build_book(md, rollup=None, sidecar=None, now=None):
     md = md or ""
     lines = md.splitlines()
     sections = split_sections(md)
-    cards = apply_terms(parse_cards(lines))
+    cards = finish_cards(apply_terms(parse_cards(lines)))
     log = parse_log(lines)
     overlay_src = apply_overlay(cards, log)
-    head = parse_headline(md, log)
+    head = choose_revolving(parse_headline(md, log), cards)
     hist = parse_history(lines, log, head.get("stress"))
     ledger_cf = cashflow_from_ledger(md) if md.strip() else {
         "months": [], "utilities": {"months": [], "providers": []},
@@ -1155,6 +1923,7 @@ def build_book(md, rollup=None, sidecar=None, now=None):
     snaps.extend(snapshots_from_log(log))
     snaps.extend(load_sidecar(sidecar) if isinstance(sidecar, str) else (sidecar or []))
     networth = {"snapshots": merge_snapshots(snaps)}
+    networth.update(networth_position(cards, head))
     upd = re.search(r"^Update: (.*)$", md, re.M)
     rev = re.search(r"^Revised: (.*)$", md, re.M)
     if now is None:
@@ -1177,7 +1946,14 @@ def build_book(md, rollup=None, sidecar=None, now=None):
             "window": cashflow.get("window") or "",
             "source": cashflow.get("source") or "",
             "months": [
-                {k: row[k] for k in ("id", "label", "stub", *FLOW_FIELDS, "burn") if k in row}
+                {
+                    k: row[k]
+                    for k in (
+                        "id", "label", "stub", *FLOW_FIELDS, "burn",
+                        "no_data", "excluded", "categories_partial", "asof",
+                    )
+                    if k in row
+                }
                 for row in cashflow.get("months") or []
             ],
         },

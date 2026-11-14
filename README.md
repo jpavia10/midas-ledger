@@ -65,7 +65,7 @@ python3 build.py --ledger "$LEDGER_MD" --cashflow "$CASHFLOW_JSON" --networth "$
 
 If `/workspace/cashflow/oct2026-rollup.json` is on the machine, it is picked up when `--cashflow` is omitted. A Cash flow section in the ledger is parsed too. The same month id (`2026-10`) merges, and the rollup wins on numbers. A later month in either source is appended.
 
-The book JSON the page decrypts includes:
+The book JSON the page decrypts is specified in `docs/BOOK_SCHEMA.md`, including the ledger text `build.py` reads and the `midas.monthly_categories.v1` rollup. It includes:
 
 - `liquid.avail`, `liquid.current`, `liquid.holds[]`, `liquid.by_acct[]` — avail is the spendable sum of fresh cash available balances. Holds (Valon, Citi ACH, and the like) are listed and are not subtracted a second time.
 - `cashflow.months[]` with `income`, `other_in`, `lifestyle`, `debt`, `fees`, `atm`, `net`.

@@ -25,6 +25,20 @@ function finite(n) {
   return null;
 }
 
+export function balanceLabel(card) {
+  if (!card) return "unknown";
+  if (card.unknown) return "unknown";
+  if (typeof card.balance === "number" && Number.isFinite(card.balance)) return money(card.balance);
+  return "see note";
+}
+
+function revolvingCard(card) {
+  if (!card || card.section !== "Cards (detail)") return false;
+  if (card.kind === "installment" || card.kind === "mortgage") return false;
+  if (/\bflex\b/i.test(card.name || "") || /\binstallment\b/i.test(card.name || "")) return false;
+  return true;
+}
+
 export function spendableOf(book) {
   const liquid = book && book.liquid;
   const fromLiquid = liquid ? finite(liquid.avail) : null;
@@ -75,22 +89,25 @@ export function sparkHtml(history) {
 }
 
 export function compositionHtml(cards) {
-  const list = (cards || []).filter((c) => c && c.section === "Cards (detail)");
+  const list = (cards || []).filter(revolvingCard);
   if (!list.length) return "";
-  const nums = list.map((c) => (typeof c.balance === "number" && Number.isFinite(c.balance) ? c.balance : 0));
+  const nums = list.map((c) => (typeof c.balance === "number" && Number.isFinite(c.balance) && !c.unknown ? c.balance : 0));
   const max = Math.max(...nums, 0);
   const rows = list.map((c) => {
-    const known = typeof c.balance === "number" && Number.isFinite(c.balance);
+    const known = !c.unknown && typeof c.balance === "number" && Number.isFinite(c.balance);
     const pct = !known || max <= 0 ? 0 : Math.max(2, (c.balance / max) * 100);
-    const figure = known ? money(c.balance) : "see note";
+    const figure = balanceLabel(c);
     const width = known ? pct.toFixed(1) : "0";
+    const fig = c.unknown
+      ? '<span class="pending">unknown</span>'
+      : known ? esc(figure) : '<span class="pending">see note</span>';
     return `<button type="button" class="comp-row" data-open="card:${escAttr(c.id)}" data-balance="${known ? escAttr(c.balance) : ""}" aria-label="${escAttr(c.name)} ${escAttr(figure)}">
       <span class="comp-name">${esc(c.name)} <span class="id">${esc(c.id)}</span></span>
       <span class="comp-track" aria-hidden="true"><i style="width:${width}%"></i></span>
-      <span class="comp-fig">${known ? esc(figure) : '<span class="pending">see note</span>'}</span>
+      <span class="comp-fig">${fig}</span>
     </button>`;
   }).join("");
-  return `<div class="chart" data-chart="revolving"><p class="kicker">Card balances</p><div class="comp">${rows}</div></div>`;
+  return `<div class="chart" data-chart="revolving"><p class="kicker">Posted balances</p><div class="comp">${rows}</div></div>`;
 }
 
 function flowRows(book) {
@@ -156,7 +173,7 @@ function categoryBlock(book) {
   const rows = items.map((item) => {
     const amount = finite(item.amount) || 0;
     const width = Math.max(2, (amount / max) * 100).toFixed(1);
-    return `<div class="comp-row cat-row" data-cat="${escAttr(item.name)}" data-amount="${escAttr(amount)}">
+    return `<div class="comp-row cat-row" data-cat="${escAttr(item.name)}" data-group="${escAttr(item.group || "")}" data-amount="${escAttr(amount)}">
       <span class="comp-name">${esc(item.name)}</span>
       <span class="comp-track" aria-hidden="true"><i style="width:${width}%"></i></span>
       <span class="comp-fig num">${esc(money(amount))}</span>
@@ -165,7 +182,7 @@ function categoryBlock(book) {
   const burn = finite(picked.burn);
   return `<article class="card glass metric">
     <p class="kicker">Categories · ${esc(picked.label || picked.id || "")}${picked.stub ? " · stub" : ""}</p>
-    <p class="meta">${burn == null ? "" : "Burn " + money(burn)}</p>
+    <p class="meta">${burn == null ? "" : "Burn " + money(burn)}${picked.partial ? " · selected categories do not cover this total" : ""}</p>
     <div class="chart comp">${rows}</div>
   </article>`;
 }
@@ -219,33 +236,49 @@ function utilitySvg(book) {
 
 export function positionFromCards(book) {
   const cards = (book && book.cards) || [];
-  const skip = (card) => {
+  const markedOff = (card) => {
     const marks = card.marks || [];
-    if (marks.includes("STALE?") || marks.includes("NEED YOU") || marks.includes("PAST DUE")) return true;
-    return typeof card.balance !== "number" || !Number.isFinite(card.balance);
+    return marks.includes("STALE?") || marks.includes("NEED YOU") || marks.includes("PAST DUE");
   };
   let assets = 0;
   let liabilities = 0;
   let haveAssets = false;
   let haveLiabilities = false;
+  const missing = [];
   cards.forEach((card) => {
-    if (skip(card)) return;
+    const amount = finite(card.balance);
+    const usable = !card.unknown && amount != null && !markedOff(card);
     if (card.section === "Cash" || card.section === "Assets beyond cash") {
-      assets += card.balance;
+      if (card.section === "Assets beyond cash" && !usable && !markedOff(card)) missing.push(card.name || card.id);
+      if (!usable) return;
+      assets += amount;
       haveAssets = true;
-    } else if (card.section === "Loans") {
-      liabilities += card.balance;
-      haveLiabilities = true;
+      return;
     }
+    const installment = card.section === "Cards (detail)" && (card.kind === "installment" || /\bflex\b/i.test(card.name || ""));
+    if (card.section === "Loans" || installment) {
+      if (!usable && !markedOff(card)) missing.push(card.name || card.id);
+      if (!usable) return;
+      liabilities += amount;
+      haveLiabilities = true;
+      return;
+    }
+    if (card.section === "Cards (detail)" && card.unknown && !markedOff(card)) missing.push(card.name || card.id);
   });
-  const revolving = book && book.headline ? finite(book.headline.revolving) : null;
+  const head = (book && book.headline) || {};
+  const revolving = finite(head.revolving);
   if (revolving != null) {
     liabilities += revolving;
     haveLiabilities = true;
+  } else if (finite(head.revolving_projected) != null) {
+    missing.push("posted revolving");
   }
+  const stated = book && book.networth && book.networth.status;
   return {
     assets: haveAssets ? assets : null,
-    liabilities: haveLiabilities ? liabilities : null
+    liabilities: haveLiabilities ? liabilities : null,
+    status: missing.length || stated === "INCOMPLETE" ? "INCOMPLETE" : "COMPLETE",
+    missing
   };
 }
 
@@ -277,11 +310,19 @@ function networthBlock(book) {
       <article class="card inset"><p class="kicker">Assets</p><p class="figure num">${esc(money(position.assets))}</p></article>
       <article class="card inset"><p class="kicker">Liabilities</p><p class="figure num debt">${esc(money(position.liabilities))}</p></article>
     </div>` : "";
+  const incomplete = position.status === "INCOMPLETE";
+  const projected = book && book.headline ? finite(book.headline.revolving_projected) : null;
+  const status = incomplete
+    ? `<p class="meta" data-nw-status="INCOMPLETE">INCOMPLETE${position.missing.length ? " · " + esc(position.missing.join(", ")) : ""}</p>`
+    : "";
+  const projection = projected != null ? `<p class="meta">Pending payoff ${esc(money(projected))} is not the posted liability.</p>` : "";
   return `<article class="card glass metric">
     <p class="kicker">Net worth</p>
+    ${status}
     ${svg}
     ${pair}
-    <p class="meta">Stale and need-you balances stay out of the pair.</p>
+    ${projection}
+    <p class="meta">Stale and need-you balances stay out of the pair. Equity is not added on top of gross value.</p>
   </article>`;
 }
 

@@ -83,4 +83,25 @@ test("flow charts read structured months, categories, utilities, and net worth",
   const position = positionFromCards(book());
   assert.equal(position.assets, 420.5);
   assert.equal(position.liabilities, 900);
+  assert.equal(position.status, "COMPLETE");
+  const gross = positionFromCards({
+    headline: { revolving: 100, revolving_projected: 80 },
+    cards: [
+      { section: "Assets beyond cash", id: "A8", name: "Home", balance: 200, gross: 200, equity: 50, marks: [] },
+      { section: "Assets beyond cash", id: "A7e", name: "ESOP", balance: null, unknown: true, marks: [] },
+      { section: "Loans", id: "N3", name: "Mortgage", balance: 150, kind: "mortgage", marks: [] },
+      { section: "Cards (detail)", id: "L9", name: "Flex plan", balance: 40, kind: "installment", marks: [] },
+    ],
+  });
+  assert.equal(gross.assets, 200);
+  assert.equal(gross.liabilities, 290);
+  assert.equal(gross.status, "INCOMPLETE");
+  assert.ok(gross.missing.includes("ESOP"));
+  const incomplete = flowChartsHtml({
+    ...book(),
+    headline: { ...book().headline, revolving_projected: 400 },
+    cards: book().cards.concat([{ section: "Assets beyond cash", id: "A7e", name: "ESOP", balance: null, unknown: true, marks: [] }]),
+  });
+  assert.match(incomplete, /data-nw-status="INCOMPLETE"/);
+  assert.match(incomplete, /Pending payoff/);
 });

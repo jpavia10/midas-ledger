@@ -105,9 +105,17 @@ function cardRow(c, extra = "") {
   const bad = c.marks.includes("NEED YOU");
   const stale = c.marks.includes("STALE?");
   const cls = bad ? "alert" : stale ? "warnb" : "";
-  const figure = c.balance == null ? '<span class="pending">see note</span>' : money(c.balance);
+  const figure = c.unknown
+    ? '<span class="pending">unknown</span>'
+    : c.balance == null ? '<span class="pending">see note</span>' : money(c.balance);
   const from = c.source != "card" ? "· from " + esc(c.source) : "";
   const prev = c.prev != null ? " · card said " + money(c.prev) : "";
+  const aside = [
+    c.equity != null ? "equity " + money(c.equity) : "",
+    c.autopay != null ? "autopay " + money(c.autopay) + " is not the balance" : "",
+    c.kind === "installment" ? "installment, not revolving" : "",
+    c.duplicate ? "duplicate id" : "",
+  ].filter(Boolean).join(" · ");
   const lines = c.balance == null || bad ? `<p class="note">${(c.lines || []).map(esc).join("<br>")}</p>` : "";
   return `<article class="card glass opener ${cls}" ${opener("card:" + c.id)} ${accountAttrs(c)}>
     <div class="row">
@@ -115,7 +123,7 @@ function cardRow(c, extra = "") {
       <p class="figure">${figure}<span class="go card-go" aria-hidden="true">→</span></p>
     </div>
     <div class="tags">${tags(c.marks)}</div>
-    <p class="meta">${esc(c.asof || "")} ${from}${prev}</p>
+    <p class="meta">${esc(c.asof || "")} ${from}${prev}${aside ? " · " + aside : ""}</p>
     ${lines}
   </article>`;
 }
@@ -226,8 +234,10 @@ export function ledgerHtml(d) {
     </article>
     <article class="card glass metric">
       <button type="button" class="metric-hit" data-open="metric:revolving">
-        <p class="kicker">Revolving</p>
-        <p class="figure num debt">${money(h.revolving)}</p>
+        <p class="kicker">Revolving${h.revolving_asof ? " · " + esc(h.revolving_asof) : ""}</p>
+        <p class="figure num debt">${h.revolving == null ? '<span class="pending">unknown</span>' : money(h.revolving)}</p>
+        ${h.revolving_projected != null ? `<p class="meta">Pending payoff ${money(h.revolving_projected)} is not this total</p>` : ""}
+        ${h.installment != null ? `<p class="meta">Installment ${money(h.installment)} is not in this total</p>` : ""}
       </button>
       ${compositionHtml(ordered)}
     </article>

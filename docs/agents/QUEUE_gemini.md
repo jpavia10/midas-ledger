@@ -2,6 +2,203 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-09 22:26 UTC · 0 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-16 13:40 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
-No homework for Gemini in Midas Ledger right now. Check your HOMEWORK doc for the other pillars.
+## 1. MID-GEM-09 · Midas Ledger: how a Citi Flex Plan and a Citi Flex Loan really work, from Citi's own pages
+
+**Due:** 2026-11-19 · **State:** now
+
+**Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
+
+**What it unlocks:** Midas models the Flex balance the way Citi applies payments and fees, not as ordinary revolving debt.
+
+**Read first:**
+- https://github.com/jpavia10/midas-ledger
+- https://raw.githubusercontent.com/jpavia10/prometheus-hub/main/AI_START_HERE.md
+
+**Do this:**
+1. Citi's own product pages, FAQs and card agreements only; the CFPB page on payment allocation for the federal rule.
+
+**Make:** `midas_gemini_flex-terms_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
+**Shape:** `JSON array, one object per row, exactly the fields below and nothing else`
+
+**Every field, exactly:**
+- `n` (integer): row
+- `product` (one of: Citi Flex Plan, Citi Flex Loan): which
+- `topic` (text): payment allocation, monthly fee or APR, term choices, effect on the credit line, payoff early, minimum payment
+- `rule` (text): one sentence in plain words
+- `url` (URL): the exact page that shows this row, opened by you today; never a home page or search page
+- `quote` (text): the sentence on that page that proves the row, copied word for word (under 300 characters)
+- `as_of` (date YYYY-MM-DD): the date you read the page
+
+**One finished row, as an example (use your own data, never copy this):**
+
+```
+{
+ "n": 1,
+ "product": "Citi Flex Plan",
+ "topic": "payment allocation",
+ "rule": "...",
+ "url": "https://www.citi.com/...",
+ "quote": "...",
+ "as_of": "2026-11-17"
+}
+```
+
+**Before you save, check every one of these yourself:**
+- [ ] Every row has a URL you opened yourself today, on the maker's or agency's own site (not a blog, forum, wiki or AI summary).
+- [ ] Every quote is copied word for word from that page and is on it now.
+- [ ] No row is a copy of another with the names changed.
+- [ ] Numbers have their unit in the field name or the unit field, never inside the text.
+- [ ] The file is valid JSON (or the exact markdown headings asked for) and is named exactly as asked.
+
+**How many:** 15
+
+**Done when:** 15 rows exactly in the shape, every self-check line true.
+
+**How Claude checks it:**
+- Claude opens 10 rows (or 10 claims) at random and compares them with their source.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name
+- a guess written as a fact (say 'not found' instead)
+- anything about Joseph's own accounts, balances, mail or records beyond what the task names
+
+## 2. MID-GEM-10 · Midas Ledger: 25 test cases for the ledger parser
+
+**Due:** 2026-11-22 · **State:** now
+
+**Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
+
+**What it unlocks:** Each case becomes a test in test/test_build.py, so a wrong balance can never ship again.
+
+**Read first:**
+- https://raw.githubusercontent.com/jpavia10/midas-ledger/main/docs/BOOK_SCHEMA.md
+- https://raw.githubusercontent.com/jpavia10/midas-ledger/main/build.py
+
+**Do this:**
+1. Read BOOK_SCHEMA.md and build.py.
+2. Write 25 cases, at least two for every rule in BOOK_SCHEMA.md (ids with letter suffixes, $0 vs unknown minimums, promo vs purchase APR, Flex as installment, mortgage P&I/escrow/half-draft, net worth INCOMPLETE).
+3. Made-up numbers only, never Joseph's real figures.
+
+**Make:** `midas_gemini_parser-cases_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
+**Shape:** `JSON array, one object per case`
+
+**Every field, exactly:**
+- `n` (integer): case number
+- `rule` (text): the BOOK_SCHEMA.md heading and sentence this case tests
+- `ledger_text` (text): the exact ledger lines, made-up numbers only
+- `expect` (object): the fields build.py must produce, e.g. {"balance": 1234.56, "min_payment": 0, "kind": "installment"}
+- `why_tricky` (text): the mistake it guards against
+
+**One finished row, as an example (use your own data, never copy this):**
+
+```
+{
+ "n": 1,
+ "rule": "debt balance is the first outstanding figure, not the autopay",
+ "ledger_text": "L4 Depot: outstanding $1,234.56 · autopay $50.00 · min $35",
+ "expect": {
+  "balance": 1234.56,
+  "autopay": 50.0,
+  "min_payment": 35.0
+ },
+ "why_tricky": "the last dollar on the line is the autopay"
+}
+```
+
+**Before you save, check every one of these yourself:**
+- [ ] Every rule in BOOK_SCHEMA.md has at least two cases.
+- [ ] No real balance from Joseph's book appears.
+- [ ] expect uses the exact field names build.py writes.
+
+**How many:** 25
+
+**Done when:** 25 rows exactly in the shape, every self-check line true.
+
+**How Claude checks it:**
+- Claude opens 10 rows (or 10 claims) at random and compares them with their source.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name
+- a guess written as a fact (say 'not found' instead)
+- anything about Joseph's own accounts, balances, mail or records beyond what the task names
+
+## 3. MID-GEM-11 · Midas Ledger: the function spec, written as the build plan
+
+**Due:** 2026-11-24 · **State:** now
+
+**Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
+
+**What it unlocks:** Joseph goes pillar by pillar, function before form; this file is the plan Claude builds Midas Ledger from, step by step.
+
+**Read first:**
+- https://jpavia10.github.io/midas-ledger/ (locked; run it locally with ?hud=1 for the made-up book, README 'Pages')
+- https://github.com/jpavia10/midas-ledger
+- https://raw.githubusercontent.com/jpavia10/prometheus-hub/main/docs/CHARTER.md (section 16: protections)
+
+**Do this:**
+1. Open the live page (https://jpavia10.github.io/midas-ledger/ (locked; run it locally with ?hud=1 for the made-up book, README 'Pages')) on a phone-sized browser and use every section.
+2. Read the code (https://github.com/jpavia10/midas-ledger): every file the page loads, and pillar.json.
+3. Write section A from what is there now, with file:line for each item; then B to H.
+4. Write for Claude to build from: exact, testable, nothing vague like 'improve the UX'.
+
+**Make:** `midas_gemini_function-spec_{YYYYMMDD-HHMM}.md`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
+
+**Shape:** `one markdown file with exactly these headings, in this order: A What it does today | B What Joseph needs it to do | C Data | D Screens | E Rules and edge cases | F Acceptance tests | G Order of work | H Must not`
+
+**Every field, exactly:**
+- `A What it does today` (list): every section, control and number on the live page, each with the file and line in the code that makes it (e.g. app.js:142)
+- `B What Joseph needs it to do` (8+ user stories): 'As Joseph, when ..., I want ..., so that ...'; from the pillar's mission and its own data; never invent facts about his life
+- `C Data` (table): record | field | type | unit | required | example | storage key (prometheus.<pillar>.<name>) | read by which other pillar
+- `D Screens` (per screen): purpose; every element top to bottom; every number with its formula and source field; the empty state text; the error state
+- `E Rules and edge cases` (10+): dates and time zones, missing data, offline, two devices, a value of 0 vs unknown
+- `F Acceptance tests` (12+): Given / When / Then, each checkable in a phone browser in under two minutes
+- `G Order of work` (numbered steps): each step small enough for one build, with what Joseph can use after it
+- `H Must not` (list): the charter's protections that apply, no server or account, no made-up numbers
+
+**One finished row, as an example (use your own data, never copy this):**
+
+```
+F7. Given an oil change logged at 12,000 mi and a 6,000 mi interval, when the odometer is set to 17,500 mi, then the service card shows 'due in 500 mi' in amber.
+```
+
+**Before you save, check every one of these yourself:**
+- [ ] Every item in A has a file:line that exists.
+- [ ] B has 8+ stories and none invents a personal fact.
+- [ ] C names every field with type and example.
+- [ ] F has 12+ tests, each with one Given, one When, one Then.
+- [ ] G steps are in an order that can ship one by one.
+- [ ] All eight headings, in order.
+
+**How many:** 1
+
+**Done when:** 1 file exactly in the shape, every self-check line true.
+
+**How Claude checks it:**
+- Claude opens 10 rows (or 10 claims) at random and compares them with their source.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name
+- a guess written as a fact (say 'not found' instead)
+- anything about Joseph's own accounts, balances, mail or records beyond what the task names

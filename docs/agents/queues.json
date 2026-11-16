@@ -1,6 +1,6 @@
 {
  "about": "Homework for this pillar, one list per AI (Claude writes it; tools/kit/render.py in jpavia10/prometheus-hub turns it into docs/agents/QUEUE_{ai}.md and the Drive docs). Every task says exactly what to read, what to make, how many, where to save it, how Claude checks it and what makes it not done. A task is done only when the file passes the checks, never because it was sent.",
- "updated": "2026-11-09",
+ "updated": "2026-11-16",
  "pillar": "midas",
  "agents": [
   {
@@ -256,6 +256,261 @@
       "a file saved anywhere but the folder named here, or under another name",
       "numbers copied from an online calculator without the cycle rows"
      ]
+    },
+    {
+     "id": "MID-GEM-09",
+     "title": "Midas Ledger: how a Citi Flex Plan and a Citi Flex Loan really work, from Citi's own pages",
+     "state": "now",
+     "due": "2026-11-19",
+     "why": "Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.",
+     "unlocks": "Midas models the Flex balance the way Citi applies payments and fees, not as ordinary revolving debt.",
+     "inputs": [
+      "https://github.com/jpavia10/midas-ledger",
+      "https://raw.githubusercontent.com/jpavia10/prometheus-hub/main/AI_START_HERE.md"
+     ],
+     "steps": [
+      "Citi's own product pages, FAQs and card agreements only; the CFPB page on payment allocation for the federal rule."
+     ],
+     "deliver": {
+      "file": "midas_gemini_flex-terms_{YYYYMMDD-HHMM}.json",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "JSON array, one object per row, exactly the fields below and nothing else"
+     },
+     "count": 15,
+     "fields": [
+      {
+       "name": "n",
+       "type": "integer",
+       "rule": "row"
+      },
+      {
+       "name": "product",
+       "type": "one of: Citi Flex Plan, Citi Flex Loan",
+       "rule": "which"
+      },
+      {
+       "name": "topic",
+       "type": "text",
+       "rule": "payment allocation, monthly fee or APR, term choices, effect on the credit line, payoff early, minimum payment"
+      },
+      {
+       "name": "rule",
+       "type": "text",
+       "rule": "one sentence in plain words"
+      },
+      {
+       "name": "url",
+       "type": "URL",
+       "rule": "the exact page that shows this row, opened by you today; never a home page or search page"
+      },
+      {
+       "name": "quote",
+       "type": "text",
+       "rule": "the sentence on that page that proves the row, copied word for word (under 300 characters)"
+      },
+      {
+       "name": "as_of",
+       "type": "date YYYY-MM-DD",
+       "rule": "the date you read the page"
+      }
+     ],
+     "example": {
+      "n": 1,
+      "product": "Citi Flex Plan",
+      "topic": "payment allocation",
+      "rule": "...",
+      "url": "https://www.citi.com/...",
+      "quote": "...",
+      "as_of": "2026-11-17"
+     },
+     "self_check": [
+      "Every row has a URL you opened yourself today, on the maker's or agency's own site (not a blog, forum, wiki or AI summary).",
+      "Every quote is copied word for word from that page and is on it now.",
+      "No row is a copy of another with the names changed.",
+      "Numbers have their unit in the field name or the unit field, never inside the text.",
+      "The file is valid JSON (or the exact markdown headings asked for) and is named exactly as asked."
+     ],
+     "done_when": "15 rows exactly in the shape, every self-check line true.",
+     "checks": [
+      "Claude opens 10 rows (or 10 claims) at random and compares them with their source."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a row copied from another row with the names changed",
+      "a URL that does not open, is a front page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens 10 rows at random)",
+      "a file saved anywhere but the folder named here, or under another name",
+      "a guess written as a fact (say 'not found' instead)",
+      "anything about Joseph's own accounts, balances, mail or records beyond what the task names"
+     ]
+    },
+    {
+     "id": "MID-GEM-10",
+     "title": "Midas Ledger: 25 test cases for the ledger parser",
+     "state": "now",
+     "due": "2026-11-22",
+     "why": "Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.",
+     "unlocks": "Each case becomes a test in test/test_build.py, so a wrong balance can never ship again.",
+     "inputs": [
+      "https://raw.githubusercontent.com/jpavia10/midas-ledger/main/docs/BOOK_SCHEMA.md",
+      "https://raw.githubusercontent.com/jpavia10/midas-ledger/main/build.py"
+     ],
+     "steps": [
+      "Read BOOK_SCHEMA.md and build.py.",
+      "Write 25 cases, at least two for every rule in BOOK_SCHEMA.md (ids with letter suffixes, $0 vs unknown minimums, promo vs purchase APR, Flex as installment, mortgage P&I/escrow/half-draft, net worth INCOMPLETE).",
+      "Made-up numbers only, never Joseph's real figures."
+     ],
+     "deliver": {
+      "file": "midas_gemini_parser-cases_{YYYYMMDD-HHMM}.json",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "JSON array, one object per case"
+     },
+     "count": 25,
+     "fields": [
+      {
+       "name": "n",
+       "type": "integer",
+       "rule": "case number"
+      },
+      {
+       "name": "rule",
+       "type": "text",
+       "rule": "the BOOK_SCHEMA.md heading and sentence this case tests"
+      },
+      {
+       "name": "ledger_text",
+       "type": "text",
+       "rule": "the exact ledger lines, made-up numbers only"
+      },
+      {
+       "name": "expect",
+       "type": "object",
+       "rule": "the fields build.py must produce, e.g. {\"balance\": 1234.56, \"min_payment\": 0, \"kind\": \"installment\"}"
+      },
+      {
+       "name": "why_tricky",
+       "type": "text",
+       "rule": "the mistake it guards against"
+      }
+     ],
+     "example": {
+      "n": 1,
+      "rule": "debt balance is the first outstanding figure, not the autopay",
+      "ledger_text": "L4 Depot: outstanding $1,234.56 · autopay $50.00 · min $35",
+      "expect": {
+       "balance": 1234.56,
+       "autopay": 50.0,
+       "min_payment": 35.0
+      },
+      "why_tricky": "the last dollar on the line is the autopay"
+     },
+     "self_check": [
+      "Every rule in BOOK_SCHEMA.md has at least two cases.",
+      "No real balance from Joseph's book appears.",
+      "expect uses the exact field names build.py writes."
+     ],
+     "done_when": "25 rows exactly in the shape, every self-check line true.",
+     "checks": [
+      "Claude opens 10 rows (or 10 claims) at random and compares them with their source."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a row copied from another row with the names changed",
+      "a URL that does not open, is a front page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens 10 rows at random)",
+      "a file saved anywhere but the folder named here, or under another name",
+      "a guess written as a fact (say 'not found' instead)",
+      "anything about Joseph's own accounts, balances, mail or records beyond what the task names"
+     ]
+    },
+    {
+     "id": "MID-GEM-11",
+     "title": "Midas Ledger: the function spec, written as the build plan",
+     "state": "now",
+     "due": "2026-11-24",
+     "why": "Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.",
+     "unlocks": "Joseph goes pillar by pillar, function before form; this file is the plan Claude builds Midas Ledger from, step by step.",
+     "inputs": [
+      "https://jpavia10.github.io/midas-ledger/ (locked; run it locally with ?hud=1 for the made-up book, README 'Pages')",
+      "https://github.com/jpavia10/midas-ledger",
+      "https://raw.githubusercontent.com/jpavia10/prometheus-hub/main/docs/CHARTER.md (section 16: protections)"
+     ],
+     "steps": [
+      "Open the live page (https://jpavia10.github.io/midas-ledger/ (locked; run it locally with ?hud=1 for the made-up book, README 'Pages')) on a phone-sized browser and use every section.",
+      "Read the code (https://github.com/jpavia10/midas-ledger): every file the page loads, and pillar.json.",
+      "Write section A from what is there now, with file:line for each item; then B to H.",
+      "Write for Claude to build from: exact, testable, nothing vague like 'improve the UX'."
+     ],
+     "deliver": {
+      "file": "midas_gemini_function-spec_{YYYYMMDD-HHMM}.md",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "one markdown file with exactly these headings, in this order: A What it does today | B What Joseph needs it to do | C Data | D Screens | E Rules and edge cases | F Acceptance tests | G Order of work | H Must not"
+     },
+     "count": 1,
+     "fields": [
+      {
+       "name": "A What it does today",
+       "type": "list",
+       "rule": "every section, control and number on the live page, each with the file and line in the code that makes it (e.g. app.js:142)"
+      },
+      {
+       "name": "B What Joseph needs it to do",
+       "type": "8+ user stories",
+       "rule": "'As Joseph, when ..., I want ..., so that ...'; from the pillar's mission and its own data; never invent facts about his life"
+      },
+      {
+       "name": "C Data",
+       "type": "table",
+       "rule": "record | field | type | unit | required | example | storage key (prometheus.<pillar>.<name>) | read by which other pillar"
+      },
+      {
+       "name": "D Screens",
+       "type": "per screen",
+       "rule": "purpose; every element top to bottom; every number with its formula and source field; the empty state text; the error state"
+      },
+      {
+       "name": "E Rules and edge cases",
+       "type": "10+",
+       "rule": "dates and time zones, missing data, offline, two devices, a value of 0 vs unknown"
+      },
+      {
+       "name": "F Acceptance tests",
+       "type": "12+",
+       "rule": "Given / When / Then, each checkable in a phone browser in under two minutes"
+      },
+      {
+       "name": "G Order of work",
+       "type": "numbered steps",
+       "rule": "each step small enough for one build, with what Joseph can use after it"
+      },
+      {
+       "name": "H Must not",
+       "type": "list",
+       "rule": "the charter's protections that apply, no server or account, no made-up numbers"
+      }
+     ],
+     "example": "F7. Given an oil change logged at 12,000 mi and a 6,000 mi interval, when the odometer is set to 17,500 mi, then the service card shows 'due in 500 mi' in amber.",
+     "self_check": [
+      "Every item in A has a file:line that exists.",
+      "B has 8+ stories and none invents a personal fact.",
+      "C names every field with type and example.",
+      "F has 12+ tests, each with one Given, one When, one Then.",
+      "G steps are in an order that can ship one by one.",
+      "All eight headings, in order."
+     ],
+     "done_when": "1 file exactly in the shape, every self-check line true.",
+     "checks": [
+      "Claude opens 10 rows (or 10 claims) at random and compares them with their source."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a row copied from another row with the names changed",
+      "a URL that does not open, is a front page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens 10 rows at random)",
+      "a file saved anywhere but the folder named here, or under another name",
+      "a guess written as a fact (say 'not found' instead)",
+      "anything about Joseph's own accounts, balances, mail or records beyond what the task names"
+     ]
     }
    ]
   },
@@ -321,6 +576,52 @@
      "rejected_if": [
       "a week missed"
      ]
+    },
+    {
+     "id": "MID-GRK-04",
+     "title": "Midas Ledger: second reader on Gemini's 'the function spec, written as the build plan'",
+     "state": "next",
+     "due": "2026-11-27",
+     "why": "Nothing Gemini delivers is built on until a second reader has checked it.",
+     "unlocks": "Claude builds from the file only after this check.",
+     "inputs": [
+      "Gemini's file midas_gemini_function-spec_*.md in the folder below (MID-GEM-11)"
+     ],
+     "steps": [
+      "Open Gemini's file and the code it describes.",
+      "Pick 10 items from its section A at random and open each file:line: does the code do what it says? Write true/false and what the code actually does.",
+      "Pick 5 acceptance tests from section F: could you check each on a phone in under two minutes? If not, say what is missing.",
+      "List up to 10 things the pillar needs that the spec leaves out, each with why."
+     ],
+     "deliver": {
+      "file": "midas_grok_function-spec-check_{YYYYMMDD-HHMM}.md",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "markdown table: item | Gemini says | what I found | URL or file:line | agree/differ, then the list of what is missing"
+     },
+     "fields": [
+      {
+       "name": "agree/differ",
+       "type": "agree or differ",
+       "rule": "differ needs what you found and where"
+      }
+     ],
+     "example": "| A3 | 'Save button writes prometheus.garage.fuel' | app.js:212 writes prometheus.garage.fuelLog | app.js:212 | differ |",
+     "self_check": [
+      "Every differ line says where you looked.",
+      "You did not change Gemini's file."
+     ],
+     "count": 10,
+     "done_when": "Every picked item checked with where you looked.",
+     "checks": [
+      "Claude re-checks 3 of your differ lines."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a row copied from another row with the names changed",
+      "a URL that does not open, is a front page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens 10 rows at random)",
+      "a file saved anywhere but the folder named here, or under another name"
+     ]
     }
    ]
   },
@@ -356,6 +657,96 @@
       "a line over 90 characters",
       "a number that is not a placeholder",
       "'journey', 'crush', 'smash', 'unlock'"
+     ]
+    },
+    {
+     "id": "MID-MUS-02",
+     "title": "Midas Ledger: second reader on Gemini's '25 test cases for the ledger parser'",
+     "state": "next",
+     "due": "2026-11-25",
+     "why": "Nothing Gemini delivers is built on until a second reader has checked it.",
+     "unlocks": "Claude builds from the file only after this check.",
+     "inputs": [
+      "Gemini's file midas_gemini_parser-cases_*.json in the folder below (MID-GEM-10)"
+     ],
+     "steps": [
+      "Open Gemini's file. Pick 15 rows at random (every row if fewer).",
+      "For each, open its URL and compare every field with the page: agree, or what the page says instead.",
+      "Add up to 5 rows Gemini missed, in Gemini's exact shape."
+     ],
+     "deliver": {
+      "file": "midas_muse_parser-cases-check_{YYYYMMDD-HHMM}.md",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "markdown table: item | Gemini says | what I found | URL or file:line | agree/differ, then the list of what is missing"
+     },
+     "fields": [
+      {
+       "name": "agree/differ",
+       "type": "agree or differ",
+       "rule": "differ needs what you found and where"
+      }
+     ],
+     "example": "| A3 | 'Save button writes prometheus.garage.fuel' | app.js:212 writes prometheus.garage.fuelLog | app.js:212 | differ |",
+     "self_check": [
+      "Every differ line says where you looked.",
+      "You did not change Gemini's file."
+     ],
+     "count": 15,
+     "done_when": "Every picked item checked with where you looked.",
+     "checks": [
+      "Claude re-checks 3 of your differ lines."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a row copied from another row with the names changed",
+      "a URL that does not open, is a front page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens 10 rows at random)",
+      "a file saved anywhere but the folder named here, or under another name"
+     ]
+    },
+    {
+     "id": "MID-MUS-03",
+     "title": "Midas Ledger: second reader on Gemini's 'how a Citi Flex Plan and a Citi Flex Loan really work, from Citi's own pages'",
+     "state": "next",
+     "due": "2026-11-22",
+     "why": "Nothing Gemini delivers is built on until a second reader has checked it.",
+     "unlocks": "Claude builds from the file only after this check.",
+     "inputs": [
+      "Gemini's file midas_gemini_flex-terms_*.json in the folder below (MID-GEM-09)"
+     ],
+     "steps": [
+      "Open Gemini's file. Pick 15 rows at random (every row if fewer).",
+      "For each, open its URL and compare every field with the page: agree, or what the page says instead.",
+      "Add up to 5 rows Gemini missed, in Gemini's exact shape."
+     ],
+     "deliver": {
+      "file": "midas_muse_flex-terms-check_{YYYYMMDD-HHMM}.md",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/",
+      "shape": "markdown table: item | Gemini says | what I found | URL or file:line | agree/differ, then the list of what is missing"
+     },
+     "fields": [
+      {
+       "name": "agree/differ",
+       "type": "agree or differ",
+       "rule": "differ needs what you found and where"
+      }
+     ],
+     "example": "| A3 | 'Save button writes prometheus.garage.fuel' | app.js:212 writes prometheus.garage.fuelLog | app.js:212 | differ |",
+     "self_check": [
+      "Every differ line says where you looked.",
+      "You did not change Gemini's file."
+     ],
+     "count": 15,
+     "done_when": "Every picked item checked with where you looked.",
+     "checks": [
+      "Claude re-checks 3 of your differ lines."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a row copied from another row with the names changed",
+      "a URL that does not open, is a front page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens 10 rows at random)",
+      "a file saved anywhere but the folder named here, or under another name"
      ]
     }
    ]

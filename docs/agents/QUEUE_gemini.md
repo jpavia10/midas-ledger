@@ -2,13 +2,13 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-19 04:28 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-19 04:52 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
 ## 1. MID-GEM-09 · Midas Ledger: how a Citi Flex Plan and a Citi Flex Loan really work, from Citi's own pages
 
-**Due:** 2026-11-19 · **State:** now
+**Due:** 2026-11-19 · **State:** delivered 2026-11-18, waiting for its check: do not redo it unless a review reopens it
 
 **Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
 
@@ -75,7 +75,7 @@ Updated 2026-11-19 04:28 UTC · 3 open · Rules for every pillar: https://github
 
 ## 2. MID-GEM-10 · Midas Ledger: 25 test cases for the ledger parser
 
-**Due:** 2026-11-22 · **State:** now
+**Due:** 2026-11-22 · **State:** delivered 2026-11-18, waiting for its check: do not redo it unless a review reopens it
 
 **Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
 
@@ -142,7 +142,7 @@ Updated 2026-11-19 04:28 UTC · 3 open · Rules for every pillar: https://github
 
 ## 3. MID-GEM-11 · Midas Ledger: the function spec, written as the build plan
 
-**Due:** 2026-11-24 · **State:** now
+**Due:** 2026-11-24 · **State:** delivered 2026-11-18, waiting for its check: do not redo it unless a review reopens it
 
 **Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
 

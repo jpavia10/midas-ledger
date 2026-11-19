@@ -2,13 +2,13 @@
 
 # Midas Ledger · homework for Muse
 
-Updated 2026-11-19 04:28 UTC · 2 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Sebastian/HOMEWORK — Muse (every pillar)'.
+Updated 2026-11-19 04:52 UTC · 2 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Sebastian/HOMEWORK — Muse (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
 ## 1. MID-MUS-03 · Midas Ledger: second reader on Gemini's 'how a Citi Flex Plan and a Citi Flex Loan really work, from Citi's own pages'
 
-**Due:** 2026-11-22 · **State:** next (starts when the file it checks is in the folder)
+**Due:** 2026-11-22 · **State:** delivered 2026-11-17, waiting for its check: do not redo it unless a review reopens it
 
 **Why:** Nothing Gemini delivers is built on until a second reader has checked it.
 
@@ -57,7 +57,7 @@ Updated 2026-11-19 04:28 UTC · 2 open · Rules for every pillar: https://github
 
 ## 2. MID-MUS-02 · Midas Ledger: second reader on Gemini's '25 test cases for the ledger parser'
 
-**Due:** 2026-11-25 · **State:** next (starts when the file it checks is in the folder)
+**Due:** 2026-11-25 · **State:** delivered 2026-11-18, waiting for its check: do not redo it unless a review reopens it
 
 **Why:** Nothing Gemini delivers is built on until a second reader has checked it.
 

@@ -1,0 +1,428 @@
+[
+ {
+  "n": 1,
+  "rule": "Ids are [A-Z] plus digits plus any trailing letters (A6 vs A6b vs A6r), and read-only / tradable annotations do not drop an account",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### A6 — VERIFIED 2026-11-01\n- balance **$1,420.00**\n- read-only\n- terms: apr 18.99% · min $35 · due 6\n",
+  "expect": {
+   "id": "A6",
+   "name": "A6",
+   "balance": 1420.0,
+   "apr": 18.99,
+   "min_payment": 35.0,
+   "due_day": 6
+  }
+ },
+ {
+  "n": 2,
+  "rule": "Ids are [A-Z] plus digits plus any trailing letters (A6b distinct from A6) and signed amounts (+$ / -$) are filed as change, never balance",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### A6b — VERIFIED 2026-11-01\n- **-$30.00**\n- balance **$730.00**\n- terms: apr 19.99% · min $25 · due 6\n",
+  "expect": {
+   "id": "A6b",
+   "name": "A6b",
+   "balance": 730.0,
+   "apr": 19.99,
+   "min_payment": 25.0,
+   "due_day": 6,
+   "not_balance": [
+    30.0
+   ]
+  },
+  "notes": [
+   "Gemini expected a 'change' field; build.py does not store the signed amount, it only keeps it out of the balance"
+  ]
+ },
+ {
+  "n": 3,
+  "rule": "Ids are [A-Z] plus digits plus any trailing letters (A6r distinct from A6/A6b), read-only / tradable do not drop an account, and missing APR/min/as-of adds terms missing warning",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### A6r — VERIFIED 2026-11-01\n- balance **$2,150.00**\n- read-only\n- tradable\n",
+  "expect": {
+   "id": "A6r",
+   "name": "A6r",
+   "balance": 2150.0,
+   "no_terms": true
+  },
+  "notes": [
+   "'terms missing' is shown by the Debt screen and the planner (src/wayout.js, src/plan.js), not written by build.py; here: the card carries no terms"
+  ]
+ },
+ {
+  "n": 4,
+  "rule": "A repeated id is kept twice and marked DUPLICATE, not overwritten",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### D2 · Card Alpha — VERIFIED 2026-11-01\n- balance **$900.00**\n- terms: apr 21.49% · min $29 · due 14\n### D2 · Card Beta — VERIFIED 2026-11-01\n- balance **$1,350.00**\n- terms: apr 24.99% · min $42 · due 19\n",
+  "expect": {
+   "id": "D2",
+   "duplicate": true,
+   "count": 2,
+   "balances": [
+    900.0,
+    1350.0
+   ]
+  },
+  "notes": [
+   "build.py writes duplicate: true and a DUPLICATE mark"
+  ]
+ },
+ {
+  "n": 5,
+  "rule": "A repeated id with trailing letter is also kept twice and marked DUPLICATE, and a minimum of $0 counts while zero balance is kept",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### L4a · Promo Card — VERIFIED 2026-11-01\n- balance **$0.00**\n- terms: apr 26.99% · min $0 · due 10\n### L4a · Promo Card Copy — VERIFIED 2026-11-01\n- balance **$450.00**\n- terms: apr 19.49% · min $0.00 · due 18 · as of 2026-11-01\n",
+  "expect": {
+   "id": "L4a",
+   "duplicate": true,
+   "count": 2,
+   "balances": [
+    0.0,
+    450.0
+   ],
+   "min_payments": [
+    0.0,
+    0.0
+   ],
+   "asof": "2026-11-01"
+  },
+  "notes": [
+   "build.py writes duplicate: true and a DUPLICATE mark"
+  ]
+ },
+ {
+  "n": 6,
+  "rule": "A minimum of $0 counts; 'min unknown' does not, and an autopay amount is never copied into min_payment",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z6a · Card R — VERIFIED 2026-11-01\n- **$875.00**\n- terms: apr 22.99% · min unknown · due 11\n",
+  "expect": {
+   "name": "Card R",
+   "balance": 875.0,
+   "apr": 22.99,
+   "min_unknown": true,
+   "due_day": 11
+  }
+ },
+ {
+  "n": 7,
+  "rule": "An autopay amount is never copied into min_payment when minimum is unknown, and statement balance is excluded from balance selection",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z7a · Card S — VERIFIED 2026-11-01\n- autopay **$250.00**\n- statement balance **$3,100.00**\n- balance **$2,900.00**\n- terms: apr 23.99% · min unknown · due 9\n",
+  "expect": {
+   "name": "Card S",
+   "balance": 2900.0,
+   "apr": 23.99,
+   "min_unknown": true,
+   "due_day": 9
+  }
+ },
+ {
+  "n": 8,
+  "rule": "apr is the purchase APR that applies after a promotion; promo_apr and promo_end hold the temporary promotional rate and deferred interest is flagged",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z8a · Store Card B — VERIFIED 2026-11-01\n- balance **$1,800.00**\n- terms: promo 0% until 2027-04-01 · purchase apr 29.99% · min $45 · due 22 · deferred interest\n",
+  "expect": {
+   "name": "Store Card B",
+   "balance": 1800.0,
+   "apr": 29.99,
+   "promo_apr": 0.0,
+   "promo_end": "2027-04-01",
+   "min_payment": 45.0,
+   "due_day": 22,
+   "deferred_interest": true
+  }
+ },
+ {
+  "n": 9,
+  "rule": "A promo segment with an end date and purchase APR binds promo_apr=0.0, promo_end, apr, and deferred_interest",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z9a · Retail Card K — VERIFIED 2026-11-01\n- balance **$2,600.00**\n- terms: promo 0% until 2027-06-15 · purchase apr 28.99% · min $75 · due 17 · deferred interest\n",
+  "expect": {
+   "name": "Retail Card K",
+   "balance": 2600.0,
+   "apr": 28.99,
+   "promo_apr": 0.0,
+   "promo_end": "2027-06-15",
+   "min_payment": 75.0,
+   "due_day": 17,
+   "deferred_interest": true
+  }
+ },
+ {
+  "n": 10,
+  "rule": "A bare APR 0% next to a promo window in the same segment is the promo rate, whereas a bare APR 0% with no promo window is a true 0% APR",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z10a · Promo Card P — VERIFIED 2026-11-01\n- balance **$1,500.00**\n- terms: apr 0% promo until 2027-08-01 · purchase apr 25.99% · min $40 · due 15\n",
+  "known_gap": "BOOK_SCHEMA.md: 'A bare APR 0% next to a promo window is the promo rate'. build.py reads 'promo 0% until DATE' and 'promo end DATE' but not 'apr 0% promo until DATE', so promo_apr and promo_end are not produced. The parser is a protected Midas internal: it changes only with Joseph's OK.",
+  "expect": {
+   "name": "Promo Card P",
+   "balance": 1500.0,
+   "apr": 25.99,
+   "promo_apr": 0.0,
+   "promo_end": "2027-08-01",
+   "min_payment": 40.0,
+   "due_day": 15
+  }
+ },
+ {
+  "n": 11,
+  "rule": "A bare APR 0% with no promo window is a true 0% APR (reported twice across integer and decimal balances)",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z11a · Medical Plan E — VERIFIED 2026-11-01\n- balance **$950**\n- terms: apr 0% · min $50 · due 28\n### Z11b · Dental Plan F — VERIFIED 2026-11-01\n- balance **$600.00**\n- terms: apr 0% · min $30 · due 14\n",
+  "expect": {
+   "cards": [
+    {
+     "name": "Medical Plan E",
+     "balance": 950.0,
+     "apr": 0.0,
+     "min_payment": 50.0,
+     "due_day": 28
+    },
+    {
+     "name": "Dental Plan F",
+     "balance": 600.0,
+     "apr": 0.0,
+     "min_payment": 30.0,
+     "due_day": 14
+    }
+   ]
+  }
+ },
+ {
+  "n": 12,
+  "rule": "A line that says installment, or a card named Flex, is kind: installment and is not part of the revolving total",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z12a · Flex Plan Z — VERIFIED 2026-11-01\n- balance **$3,600.00**\n- terms: apr 14.99% · min $150 · due 15 · installment\n",
+  "expect": {
+   "name": "Flex Plan Z",
+   "kind": "installment",
+   "balance": 3600.0,
+   "apr": 14.99,
+   "min_payment": 150.0,
+   "due_day": 15
+  }
+ },
+ {
+  "n": 13,
+  "rule": "A card named Flex is kind: installment even without the literal word 'installment', and a line with 'installment' is kind: installment",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z13a · Citi Flex Loan 2 — VERIFIED 2026-11-01\n- balance **$2,100.00**\n- terms: apr 9.99% · min $95 · due 20\n### Z13b · Appliance Plan M — VERIFIED 2026-11-01\n- balance **$1,200.00**\n- terms: apr 12.50% · min $68 · due 4 · installment\n",
+  "expect": {
+   "cards": [
+    {
+     "name": "Citi Flex Loan 2",
+     "kind": "installment",
+     "balance": 2100.0,
+     "apr": 9.99,
+     "min_payment": 95.0,
+     "due_day": 20
+    },
+    {
+     "name": "Appliance Plan M",
+     "kind": "installment",
+     "balance": 1200.0,
+     "apr": 12.5,
+     "min_payment": 68.0,
+     "due_day": 4
+    }
+   ]
+  }
+ },
+ {
+  "n": 14,
+  "rule": "A debt card carrying a balance but lacking APR, minimum payment, and as-of date gets the 'terms missing' warning",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z14a · Mystery Card Q — VERIFIED 2026-11-01\n- balance **$1,180.00**\n",
+  "expect": {
+   "name": "Mystery Card Q",
+   "balance": 1180.0,
+   "no_terms": true
+  },
+  "notes": [
+   "'terms missing' is shown by the Debt screen and the planner (src/wayout.js, src/plan.js), not written by build.py; here: the card carries no terms"
+  ]
+ },
+ {
+  "n": 15,
+  "rule": "A mortgage balance is principal, never the biweekly draft; two drafts make one full payment of P&I plus escrow and the first draft is held",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Loans\n### Z15a · Mortgage — VERIFIED 2026-11-01\n- principal **$100,000.00**\n- biweekly draft **$450.00**\n- terms: apr 6% · P&I $700 · escrow $150 · frequency biweekly · due 1 · as of 2026-11-01\n",
+  "expect": {
+   "name": "Mortgage",
+   "balance": 100000.0,
+   "apr": 6.0,
+   "pi": 700.0,
+   "escrow": 150.0,
+   "draft": 450.0,
+   "frequency": "biweekly",
+   "due_day": 1,
+   "asof": "2026-11-01",
+   "unapplied": "hold_until_full_payment"
+  }
+ },
+ {
+  "n": 16,
+  "rule": "A mortgage with biweekly half-draft appearing before the principal label still takes principal as the balance",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Loans\n### Z16a · Home Loan — VERIFIED 2026-11-01\n- biweekly draft **$625.00**\n- principal **$185,000.00**\n- terms: apr 5.5% · P&I $980 · escrow $270 · frequency biweekly · due 1\n",
+  "expect": {
+   "name": "Home Loan",
+   "balance": 185000.0,
+   "apr": 5.5,
+   "pi": 980.0,
+   "escrow": 270.0,
+   "draft": 625.0,
+   "frequency": "biweekly",
+   "due_day": 1,
+   "unapplied": "hold_until_full_payment"
+  }
+ },
+ {
+  "n": 17,
+  "rule": "Net worth is INCOMPLETE when any asset component is unknown, and first cost is not the value",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Assets beyond cash\n### Z17a · Vehicles — VERIFIED 2026-11-01\n- car: unknown\n- bike: gross **$1,200.00**\n- first cost **$9,000.00**\n",
+  "expect": {
+   "name": "Vehicles",
+   "balance": null,
+   "unknown": true,
+   "networth": "INCOMPLETE"
+  }
+ },
+ {
+  "n": 18,
+  "rule": "Net worth is INCOMPLETE when the only revolving figure is a projection ('projected revolving') rather than a posted balance",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Recent log\n- 2026-11-15 v1 projected revolving $11,400.00\n",
+  "expect": {
+   "headline": {
+    "revolving": null,
+    "revolving_projected": 11400.0
+   },
+   "networth": "INCOMPLETE"
+  },
+  "notes": [
+   "Gemini put the projection on a card line; build.py reads revolving figures from log lines, so the case is written as one"
+  ]
+ },
+ {
+  "n": 19,
+  "rule": "Assets use gross value (equity and first cost are excluded), and an unknown liability marks net worth INCOMPLETE",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Loans\n### Z19c · Loan X — VERIFIED 2026-11-01\n- balance unknown\n- terms: apr 7.25% · min $150 · due 12\n## Assets beyond cash\n### Z19a · Property — VERIFIED 2026-11-01\n- gross **$320,000.00**\n- equity **$95,000.00**\n- first cost **$280,000.00**\n### Z19b · Equipment — VERIFIED 2026-11-01\n- gross **$14,000.00**\n- equity **$8,000.00**\n- first cost **$22,000.00**\n",
+  "expect": {
+   "property_balance": 320000.0,
+   "equipment_balance": 14000.0,
+   "loan_balance": null,
+   "unknown": true,
+   "networth": "INCOMPLETE"
+  }
+ },
+ {
+  "n": 20,
+  "rule": "Debt balance is the first outstanding figure, excluding autopay, statement balance, prior balance, credit limit, and signed change",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z20a · Card E — VERIFIED 2026-11-01\n- **-$42.15**\n- autopay **$180.00**\n- statement balance **$1,650.00**\n- prior balance **$1,800.00**\n- balance **$1,490.25**\n- terms: limit $10,000 · apr 20.49% · min $48 · due 12\n",
+  "expect": {
+   "name": "Card E",
+   "balance": 1490.25,
+   "credit_limit": 10000.0,
+   "apr": 20.49,
+   "min_payment": 48.0,
+   "due_day": 12,
+   "not_balance": [
+    42.15
+   ]
+  },
+  "notes": [
+   "Gemini expected a 'change' field; build.py does not store the signed amount, it only keeps it out of the balance"
+  ]
+ },
+ {
+  "n": 21,
+  "rule": "Credit limit and prior balance are excluded when selecting an unlabeled debt balance",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cards (detail)\n### Z21a · Blue Cash — VERIFIED 2026-11-01\n- prior balance **$3,500.00**\n- **$3,120.50**\n- terms: apr 21.49% · min $94 · limit $8,500 · due 3\n",
+  "expect": {
+   "name": "Blue Cash",
+   "balance": 3120.5,
+   "credit_limit": 8500.0,
+   "apr": 21.49,
+   "min_payment": 94.0,
+   "due_day": 3
+  }
+ },
+ {
+  "n": 22,
+  "rule": "Cash accounts prefer AVAILABLE over CURRENT (never treat current or harvest figures as spendable cash)",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cash\n### A1 · Checking A1 — VERIFIED 2026-11-01\n- AVAILABLE: **$1,120.00**\n- CURRENT: **$1,480.50**\n",
+  "expect": {
+   "id": "A1",
+   "name": "Checking A1",
+   "balance": 1120.0,
+   "current": 1480.5
+  }
+ },
+ {
+  "n": 23,
+  "rule": "Cash accounts prefer AVAILABLE over CURRENT even when CURRENT is written on the first line before AVAILABLE",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Cash\n### A2 · Checking A2 — VERIFIED 2026-11-01\n- CURRENT: **$2,310.75**\n- AVAILABLE: **$1,950.25**\n",
+  "expect": {
+   "id": "A2",
+   "name": "Checking A2",
+   "balance": 1950.25,
+   "current": 2310.75
+  }
+ },
+ {
+  "n": 24,
+  "rule": "Log lines are read in date order, 3-digit stress A->B uses the score after the arrow, and plan directives parse strategy and budget",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "book": "## Recent log\n- 2026-11-01 v70 · logged payment · stress 700→500\n- 2026-11-10 v71 · promo cleared · stress 500→300\n## Notes\n- plan: snowball\n- plan budget: $1,200.00\n",
+  "expect": {
+   "headline": {
+    "stress": 300
+   },
+   "plan": {
+    "method": "snowball",
+    "budget": 1200.0
+   }
+  },
+  "notes": [
+   "Gemini wrote '- plan: avalanche · budget $1,500.00' and expected 'mode'; the schema's syntax is '- plan: snowball' and '- plan budget: $1,200.00', and build.py writes 'method'"
+  ]
+ },
+ {
+  "n": 25,
+  "rule": "In monthly_categories, $0 is a measured zero and any gap to Total becomes Uncategorized with partial: true (verified across two months)",
+  "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
+  "rollup": [
+   "2026-10: Total $2,000.00 | Groceries $600.00 | Dining $0.00 | Utilities $350.00",
+   "2026-11: Total $1,800.00 | Groceries $500.00 | Fuel $0.00 | Insurance $400.00"
+  ],
+  "expect": {
+   "2026-10": {
+    "items": {
+     "Groceries": 600.0,
+     "Dining": 0.0,
+     "Utilities": 350.0,
+     "Uncategorized": 1050.0
+    },
+    "partial": true
+   },
+   "2026-11": {
+    "items": {
+     "Groceries": 500.0,
+     "Fuel": 0.0,
+     "Insurance": 400.0,
+     "Uncategorized": 900.0
+    },
+    "partial": true
+   }
+  },
+  "notes": [
+   "Gemini wrote 'total'; the rollup's own fields are months[].items and partial"
+  ]
+ }
+]

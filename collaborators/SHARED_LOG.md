@@ -2,6 +2,10 @@
 
 Newest first. Every contributor (Claude and every AI) adds a dated 2-3 line entry after a change.
 
+### [2026-11-20] Claude: parser cases are tests now; Nov 17-18 files checked and scored
+- Gemini's 25 parser cases (MID-GEM-10, 1940 file) run through build.py: 22 give the parser's values (7 under field names build.py does not write, corrected), 18 and 24 rewritten in the schema's syntax. They are test/test_parser_cases.py + test/parser_cases.json, in `npm run check` (46 Python tests). Case 10 is an expected failure: BOOK_SCHEMA.md says a bare `APR 0%` next to a promo window is the promo rate, but parse_terms does not read `apr 0% promo until DATE`. The parser is a protected internal, so that fix waits for Joseph's OK.
+- Scores #1-#11 (first rows on this sheet). MID-GEM-09 and -10 and MID-MUS-02 and -03 closed; MID-GEM-11 (function spec) sent back, due Nov 30. The Flex rules in Hub Money now link the Citi page for each rule and mark four as unconfirmed (the URL Gemini cited for 13 rows is not found by search).
+
 ### [2026-11-14] Grok: posted balances, distinct assets, mortgage forecast
 - Debt bars and the revolving headline use the posted outstanding balance. Autopay, minimums, drafts, prior figures and pending-payoff projections stay beside it. Suffixed account ids stay distinct, unknown stays unknown, and net worth says INCOMPLETE while a part is missing.
 - The mortgage forecast separates P&I, escrow and a held half-draft, and leaves extra principal conditional. `docs/BOOK_SCHEMA.md` now states the ledger text and `midas.monthly_categories.v1`. Vault ciphertext unchanged.

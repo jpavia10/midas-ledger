@@ -2,147 +2,15 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-19 23:35 UTC · 3 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-20 09:12 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
-## 1. MID-GEM-09 · Midas Ledger: how a Citi Flex Plan and a Citi Flex Loan really work, from Citi's own pages
+## 1. MID-GEM-11 · Midas Ledger: the function spec, written as the build plan
 
-**Due:** 2026-11-19 · **State:** delivered 2026-11-18, waiting for its check: do not redo it unless a review reopens it
+**Due:** 2026-11-30 · **State:** now
 
-**Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
-
-**What it unlocks:** Midas models the Flex balance the way Citi applies payments and fees, not as ordinary revolving debt.
-
-**Read first:**
-- https://github.com/jpavia10/midas-ledger
-- https://raw.githubusercontent.com/jpavia10/prometheus-hub/main/AI_START_HERE.md
-
-**Do this:**
-1. Citi's own product pages, FAQs and card agreements only; the CFPB page on payment allocation for the federal rule.
-
-**Make:** `midas_gemini_flex-terms_{YYYYMMDD-HHMM}.json`
-
-**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
-
-**Shape:** `JSON array, one object per row, exactly the fields below and nothing else`
-
-**Every field, exactly:**
-- `n` (integer): row
-- `product` (one of: Citi Flex Plan, Citi Flex Loan): which
-- `topic` (text): payment allocation, monthly fee or APR, term choices, effect on the credit line, payoff early, minimum payment
-- `rule` (text): one sentence in plain words
-- `url` (URL): the exact page that shows this row, opened by you today; never a home page or search page
-- `quote` (text): the sentence on that page that proves the row, copied word for word (under 300 characters)
-- `as_of` (date YYYY-MM-DD): the date you read the page
-
-**One finished row, as an example (use your own data, never copy this):**
-
-```
-{
- "n": 1,
- "product": "Citi Flex Plan",
- "topic": "payment allocation",
- "rule": "...",
- "url": "https://www.citi.com/...",
- "quote": "...",
- "as_of": "2026-11-17"
-}
-```
-
-**Before you save, check every one of these yourself:**
-- [ ] Every row has a URL you opened yourself today, on the maker's or agency's own site (not a blog, forum, wiki or AI summary).
-- [ ] Every quote is copied word for word from that page and is on it now.
-- [ ] No row is a copy of another with the names changed.
-- [ ] Numbers have their unit in the field name or the unit field, never inside the text.
-- [ ] The file is valid JSON (or the exact markdown headings asked for) and is named exactly as asked.
-
-**How many:** 15
-
-**Done when:** 15 rows exactly in the shape, every self-check line true.
-
-**How Claude checks it:**
-- Claude opens 10 rows (or 10 claims) at random and compares them with their source.
-
-**Not done (sent back) if:**
-- fewer rows than the count, or a row missing a field
-- a row copied from another row with the names changed
-- a URL that does not open, is a front page or a search page, or does not say what the row claims
-- a quote that is not on the page it cites (Claude opens 10 rows at random)
-- a file saved anywhere but the folder named here, or under another name
-- a guess written as a fact (say 'not found' instead)
-- anything about Joseph's own accounts, balances, mail or records beyond what the task names
-
-## 2. MID-GEM-10 · Midas Ledger: 25 test cases for the ledger parser
-
-**Due:** 2026-11-22 · **State:** delivered 2026-11-18, waiting for its check: do not redo it unless a review reopens it
-
-**Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
-
-**What it unlocks:** Each case becomes a test in test/test_build.py, so a wrong balance can never ship again.
-
-**Read first:**
-- https://raw.githubusercontent.com/jpavia10/midas-ledger/main/docs/BOOK_SCHEMA.md
-- https://raw.githubusercontent.com/jpavia10/midas-ledger/main/build.py
-
-**Do this:**
-1. Read BOOK_SCHEMA.md and build.py.
-2. Write 25 cases, at least two for every rule in BOOK_SCHEMA.md (ids with letter suffixes, $0 vs unknown minimums, promo vs purchase APR, Flex as installment, mortgage P&I/escrow/half-draft, net worth INCOMPLETE).
-3. Made-up numbers only, never Joseph's real figures.
-
-**Make:** `midas_gemini_parser-cases_{YYYYMMDD-HHMM}.json`
-
-**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
-
-**Shape:** `JSON array, one object per case`
-
-**Every field, exactly:**
-- `n` (integer): case number
-- `rule` (text): the BOOK_SCHEMA.md heading and sentence this case tests
-- `ledger_text` (text): the exact ledger lines, made-up numbers only
-- `expect` (object): the fields build.py must produce, e.g. {"balance": 1234.56, "min_payment": 0, "kind": "installment"}
-- `why_tricky` (text): the mistake it guards against
-
-**One finished row, as an example (use your own data, never copy this):**
-
-```
-{
- "n": 1,
- "rule": "debt balance is the first outstanding figure, not the autopay",
- "ledger_text": "L4 Depot: outstanding $1,234.56 · autopay $50.00 · min $35",
- "expect": {
-  "balance": 1234.56,
-  "autopay": 50.0,
-  "min_payment": 35.0
- },
- "why_tricky": "the last dollar on the line is the autopay"
-}
-```
-
-**Before you save, check every one of these yourself:**
-- [ ] Every rule in BOOK_SCHEMA.md has at least two cases.
-- [ ] No real balance from Joseph's book appears.
-- [ ] expect uses the exact field names build.py writes.
-
-**How many:** 25
-
-**Done when:** 25 rows exactly in the shape, every self-check line true.
-
-**How Claude checks it:**
-- Claude opens 10 rows (or 10 claims) at random and compares them with their source.
-
-**Not done (sent back) if:**
-- fewer rows than the count, or a row missing a field
-- a row copied from another row with the names changed
-- a URL that does not open, is a front page or a search page, or does not say what the row claims
-- a quote that is not on the page it cites (Claude opens 10 rows at random)
-- a file saved anywhere but the folder named here, or under another name
-- a guess written as a fact (say 'not found' instead)
-- anything about Joseph's own accounts, balances, mail or records beyond what the task names
-
-## 3. MID-GEM-11 · Midas Ledger: the function spec, written as the build plan
-
-**Due:** 2026-11-24 · **State:** delivered 2026-11-18, waiting for its check: do not redo it unless a review reopens it
+**SENT BACK, DO IT AGAIN:** Sent back 2026-11-20: midas_gemini_function-spec_20261118-1940.md now describes the real code (Muse's first read found an invented app in the 1735 version), but it lost the counts: B has 3 items and none is 'As Joseph, when ..., I want ..., so that ...' (8+); C is a list, not the table; E has 7 rules (10+); F has 4 tests, none Given/when/then (12+). Its build.py lines point at other code (parse_terms is at build.py:1767, not 130-165; net worth at 1671, not 305-330), and C and E state fields build.py does not write (warnings, change, duplicate: 'DUPLICATE', plan.mode, totals). F1 claims 25/25 for the parser cases; 22 hold (test/test_parser_cases.py). Write it again from the live code; run node tools/kit/check_delivery.mjs on it from a checkout of jpavia10/prometheus-hub.
 
 **Why:** Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.
 
@@ -188,6 +56,7 @@ F7. Given an oil change logged at 12,000 mi and a 6,000 mi interval, when the od
 - [ ] F has 12+ tests, each with one Given, one When, one Then.
 - [ ] G steps are in an order that can ship one by one.
 - [ ] All eight headings, in order.
+- [ ] Every file:line in A is the line that does what the item says, in the code as it is on the day you write (Claude opens 10 at random).
 
 **How many:** 1
 
@@ -204,3 +73,5 @@ F7. Given an oil change logged at 12,000 mi and a 6,000 mi interval, when the od
 - a file saved anywhere but the folder named here, or under another name
 - a guess written as a fact (say 'not found' instead)
 - anything about Joseph's own accounts, balances, mail or records beyond what the task names
+- a file:line past the end of its file, or pointing at code that does something else
+- a personal detail (address, names, devices, accounts) that is not in the pillar's own code or data

@@ -260,7 +260,7 @@
     {
      "id": "MID-GEM-09",
      "title": "Midas Ledger: how a Citi Flex Plan and a Citi Flex Loan really work, from Citi's own pages",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-19",
      "why": "Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.",
      "unlocks": "Midas models the Flex balance the way Citi applies payments and fees, not as ordinary revolving debt.",
@@ -342,12 +342,14 @@
       "a file saved anywhere but the folder named here, or under another name",
       "a guess written as a fact (say 'not found' instead)",
       "anything about Joseph's own accounts, balances, mail or records beyond what the task names"
-     ]
+     ],
+     "closed": "2026-11-20",
+     "review": "Done 2026-11-20: the 2040 file is the Hub Money pillar's Flex rules (pillars/money/flex.js, built 2026-11-17 with rows 7 and 15 corrected). Claude's check on 2026-11-20: the page cited for 13 rows (citi.com/credit-cards/citi-flex-plan) is not found by search and its quotes are not Citi's wording, so every row now links the Citi page that states it, row 6 ('6 to 60 months') and row 10 ('Interest Saving Balance') are corrected and four rows are marked unconfirmed. The 1940 redo repeated the same URL and quotes; it is not used. Scores in collaborators/CONTRIBUTOR_SCORES.md."
     },
     {
      "id": "MID-GEM-10",
      "title": "Midas Ledger: 25 test cases for the ledger parser",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-22",
      "why": "Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.",
      "unlocks": "Each case becomes a test in test/test_build.py, so a wrong balance can never ship again.",
@@ -421,13 +423,15 @@
       "a file saved anywhere but the folder named here, or under another name",
       "a guess written as a fact (say 'not found' instead)",
       "anything about Joseph's own accounts, balances, mail or records beyond what the task names"
-     ]
+     ],
+     "closed": "2026-11-20",
+     "review": "Done 2026-11-20: built as test/test_parser_cases.py (fixture test/parser_cases.json), run by npm run check. Claude ran all 25 cases of the 1940 file through build.py: 22 give the parser's values (7 under a field name build.py does not write: corrected in the fixture), case 18 and 24 rewritten in the schema's syntax, case 10 kept as an expected failure (the parser does not read 'apr 0% promo until DATE'; a parser change needs Joseph's OK). Score 8."
     },
     {
      "id": "MID-GEM-11",
      "title": "Midas Ledger: the function spec, written as the build plan",
      "state": "now",
-     "due": "2026-11-24",
+     "due": "2026-11-30",
      "why": "Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.",
      "unlocks": "Joseph goes pillar by pillar, function before form; this file is the plan Claude builds Midas Ledger from, step by step.",
      "inputs": [
@@ -496,7 +500,8 @@
       "C names every field with type and example.",
       "F has 12+ tests, each with one Given, one When, one Then.",
       "G steps are in an order that can ship one by one.",
-      "All eight headings, in order."
+      "All eight headings, in order.",
+      "Every file:line in A is the line that does what the item says, in the code as it is on the day you write (Claude opens 10 at random)."
      ],
      "done_when": "1 file exactly in the shape, every self-check line true.",
      "checks": [
@@ -509,8 +514,12 @@
       "a quote that is not on the page it cites (Claude opens 10 rows at random)",
       "a file saved anywhere but the folder named here, or under another name",
       "a guess written as a fact (say 'not found' instead)",
-      "anything about Joseph's own accounts, balances, mail or records beyond what the task names"
-     ]
+      "anything about Joseph's own accounts, balances, mail or records beyond what the task names",
+      "a file:line past the end of its file, or pointing at code that does something else",
+      "a personal detail (address, names, devices, accounts) that is not in the pillar's own code or data"
+     ],
+     "reopened": "2026-11-20",
+     "review": "Sent back 2026-11-20: midas_gemini_function-spec_20261118-1940.md now describes the real code (Muse's first read found an invented app in the 1735 version), but it lost the counts: B has 3 items and none is 'As Joseph, when ..., I want ..., so that ...' (8+); C is a list, not the table; E has 7 rules (10+); F has 4 tests, none Given/when/then (12+). Its build.py lines point at other code (parse_terms is at build.py:1767, not 130-165; net worth at 1671, not 305-330), and C and E state fields build.py does not write (warnings, change, duplicate: 'DUPLICATE', plan.mode, totals). F1 claims 25/25 for the parser cases; 22 hold (test/test_parser_cases.py). Write it again from the live code; run node tools/kit/check_delivery.mjs on it from a checkout of jpavia10/prometheus-hub."
     }
    ]
   },
@@ -662,7 +671,7 @@
     {
      "id": "MID-MUS-02",
      "title": "Midas Ledger: second reader on Gemini's '25 test cases for the ledger parser'",
-     "state": "next",
+     "state": "done",
      "due": "2026-11-25",
      "why": "Nothing Gemini delivers is built on until a second reader has checked it.",
      "unlocks": "Claude builds from the file only after this check.",
@@ -702,12 +711,14 @@
       "a URL that does not open, is a front page or a search page, or does not say what the row claims",
       "a quote that is not on the page it cites (Claude opens 10 rows at random)",
       "a file saved anywhere but the folder named here, or under another name"
-     ]
+     ],
+     "closed": "2026-11-20",
+     "review": "Done 2026-11-20: both reads (1725, 1615) were exact; Claude's own run of the next version through build.py agrees with the recheck's findings (case 10's promo wording). Scores 10 and 10."
     },
     {
      "id": "MID-MUS-03",
      "title": "Midas Ledger: second reader on Gemini's 'how a Citi Flex Plan and a Citi Flex Loan really work, from Citi's own pages'",
-     "state": "next",
+     "state": "done",
      "due": "2026-11-22",
      "why": "Nothing Gemini delivers is built on until a second reader has checked it.",
      "unlocks": "Claude builds from the file only after this check.",
@@ -747,7 +758,9 @@
       "a URL that does not open, is a front page or a search page, or does not say what the row claims",
       "a quote that is not on the page it cites (Claude opens 10 rows at random)",
       "a file saved anywhere but the folder named here, or under another name"
-     ]
+     ],
+     "closed": "2026-11-20",
+     "review": "Done 2026-11-20: 11 of 15 rules confirmed, rows 6, 7, 10 and 15 caught; the hub's Flex rows now carry these checks. One point lost: the shared Citi URL and paraphrased quotes were not flagged. Score 9."
     }
    ]
   },

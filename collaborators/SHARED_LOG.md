@@ -2,6 +2,9 @@
 
 Newest first. Every contributor (Claude and every AI) adds a dated 2-3 line entry after a change.
 
+### [2026-11-20] MID-GEM-12: parser trial for Gemini (owner: test the new model first)
+- 30 new terms cases (15 real issuer wordings, 15 edge cases), each with what build.py returns today worked out from the code. Claude runs them; any gap between build.py and BOOK_SCHEMA.md goes to Joseph before the parser changes (protected internal).
+
 ### [2026-11-20] Claude: parser reads every promo-window wording (Joseph's OK)
 - parse_terms now reads `APR 0% promo until DATE` and `promo until/to/through DATE`, and a bare `APR 0%` next to a promo window becomes `promo_apr` even when a purchase APR is on the line (BOOK_SCHEMA.md's rule; Gemini's parser case 10 found the gap). Parser case 10 passes; test_promo_window_wordings pins six wordings; earlier forms parse exactly as before. Takes effect on the next book build (publish.sh); nothing on the live page changes until then.
 

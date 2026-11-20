@@ -2,11 +2,68 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-20 09:12 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-20 16:55 UTC · 2 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
-## 1. MID-GEM-11 · Midas Ledger: the function spec, written as the build plan
+## 1. MID-GEM-12 · TRIAL 5: break the Midas terms parser on paper (30 cases, predict what the code returns)
+
+**Due:** 2026-11-23 · **State:** now
+
+**Why:** TRIAL (do these first, in this order): a measured test of what this model can do; scored against answers or measurements Claude holds, not by opinion. Executing code in your head, exactly. build.py's parse_terms (line 1767) turns a card's terms bullet into purchase APR, promo APR, promo end and due day; docs/BOOK_SCHEMA.md says what it must accept. The 25 cases in test/parser_cases.json already pass. You write 30 new ones and predict, for each, what the code returns today.
+
+**What it unlocks:** Every case where build.py disagrees with BOOK_SCHEMA.md is a real parser bug; Claude reports it to Joseph (the parser is changed only with his OK) and the case joins the test suite.
+
+**Read first:**
+- https://raw.githubusercontent.com/jpavia10/midas-ledger/main/build.py (parse_terms from line 1767, and the code that calls it)
+- https://raw.githubusercontent.com/jpavia10/midas-ledger/main/docs/BOOK_SCHEMA.md (what the book may say and what it means)
+- https://raw.githubusercontent.com/jpavia10/midas-ledger/main/test/parser_cases.json and https://raw.githubusercontent.com/jpavia10/midas-ledger/main/test/test_parser_cases.py (the case format and how it is run)
+
+**Do this:**
+1. Read parse_terms and every function it calls, and BOOK_SCHEMA.md.
+2. Write 15 'real' cases: a terms wording a real US card issuer uses in its cardmember agreement or pricing page (cite the page, quote it under 300 characters), written as a book terms bullet. 'expect' is what BOOK_SCHEMA.md says the book means.
+3. Write 15 'edge' cases aimed at the gaps: separators, case, spacing, dates, 0 vs missing, several rates on one line, words in a different order, deferred interest.
+4. For every case, 'predict' is what build.py returns today, worked out from the code line by line (not what it should return), and 'why' names the lines.
+5. Made-up numbers and names only. No real account data.
+
+**Make:** `midas_gemini_parser-trial_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)
+
+**Shape:** `JSON array of 30 objects in test/parser_cases.json's format plus kind, predict, why, source_url, quote`
+
+**Every field, exactly:**
+- `n` (integer): row
+- `kind` (text): real | edge
+- `rule` (text): what the case tests
+- `book` (text): the ledger text, in the book's format (a card section with its terms bullet)
+- `expect` (object): what BOOK_SCHEMA.md says it means, in the field names build.py writes
+- `predict` (object): what build.py returns today, same field names
+- `why` (text): the build.py lines that decide it
+- `source_url` (text): real cases: the issuer's page; edge cases: ""
+- `quote` (text): real cases: under 300 characters; edge cases: ""
+
+**Before you save, check every one of these yourself:**
+- [ ] 15 real and 15 edge.
+- [ ] Every real case cites an issuer's own page with a quote that is on it.
+- [ ] expect follows BOOK_SCHEMA.md; predict follows the code. Where they differ you have found a gap: say so in the run report.
+- [ ] Field names are the ones build.py writes (see the 25 existing cases).
+- [ ] Valid JSON, named exactly as asked.
+
+**How many:** 30
+
+**Done when:** 30 cases, each with expect, predict and why.
+
+**How Claude checks it:**
+- Claude runs all 30 through build.py. Score: predictions that match the code exactly; expectations that match BOOK_SCHEMA.md; real parser gaps found (each is a bonus).
+
+**Not done (sent back) if:**
+- a prediction copied from expect without reading the code
+- real account data
+- a real case whose quote is not on the cited page
+- fewer than 30
+
+## 2. MID-GEM-11 · Midas Ledger: the function spec, written as the build plan
 
 **Due:** 2026-11-30 · **State:** now
 

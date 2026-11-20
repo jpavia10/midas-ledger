@@ -10,7 +10,7 @@
     {
      "id": "MID-GEM-12",
      "title": "TRIAL 5: break the Midas terms parser on paper (30 cases, predict what the code returns)",
-     "state": "now",
+     "state": "done",
      "added": "2026-11-20",
      "due": "2026-11-23",
      "why": "TRIAL (do these first, in this order): a measured test of what this model can do; scored against answers or measurements Claude holds, not by opinion. Executing code in your head, exactly. build.py's parse_terms (line 1767) turns a card's terms bullet into purchase APR, promo APR, promo end and due day; docs/BOOK_SCHEMA.md says what it must accept. The 25 cases in test/parser_cases.json already pass. You write 30 new ones and predict, for each, what the code returns today.",
@@ -96,7 +96,9 @@
       "real account data",
       "a real case whose quote is not on the cited page",
       "fewer than 30"
-     ]
+     ],
+     "closed": "2026-11-20",
+     "review": "Scored 8 (trial 5). Claude ran all 30 through build.py: 24 of 30 predictions exact; the 6 misses share one blind spot (the 'as of' date is read from the whole line, so it survives separators and labels that break the other fields). Real parser gaps found, inside what BOOK_SCHEMA.md promises: 'no deferred interest' sets deferred_interest (case 26), a non-zero promo rate beside a promo end is dropped (case 21), and three minor ones ('due 15th', 'promo' inside the due segment, 'thru' in the first promo pattern). Over-claimed: '27 of 30 real parser gaps' counts issuer wordings the book never promised to read (the book is written in the schema's own form). The issuer quotes could not be opened from Claude's machine. Gaps go to Joseph before the parser changes (protected internal)."
     },
     {
      "id": "MID-GEM-01",

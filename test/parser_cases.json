@@ -152,7 +152,6 @@
   "rule": "A bare APR 0% next to a promo window in the same segment is the promo rate, whereas a bare APR 0% with no promo window is a true 0% APR",
   "from": "midas_gemini_parser-cases_20261118-1940.json (Gemini), checked by Claude against build.py 2026-11-20",
   "book": "## Cards (detail)\n### Z10a · Promo Card P — VERIFIED 2026-11-01\n- balance **$1,500.00**\n- terms: apr 0% promo until 2027-08-01 · purchase apr 25.99% · min $40 · due 15\n",
-  "known_gap": "BOOK_SCHEMA.md: 'A bare APR 0% next to a promo window is the promo rate'. build.py reads 'promo 0% until DATE' and 'promo end DATE' but not 'apr 0% promo until DATE', so promo_apr and promo_end are not produced. The parser is a protected Midas internal: it changes only with Joseph's OK.",
   "expect": {
    "name": "Promo Card P",
    "balance": 1500.0,
@@ -161,7 +160,10 @@
    "promo_end": "2027-08-01",
    "min_payment": 40.0,
    "due_day": 15
-  }
+  },
+  "notes": [
+   "Was a known gap: build.py did not read 'apr 0% promo until DATE'. Parser fixed 2026-11-20 with Joseph's OK; this case now passes."
+  ]
  },
  {
   "n": 11,

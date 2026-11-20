@@ -1789,9 +1789,18 @@ def parse_terms(line):
             out["promo_apr"] = float(match.group(1))
             out["promo_end"] = match.group(2)
             continue
-        match = re.match(r"promo(?:\s*(?:end|expir\w*))\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", low)
+        match = re.match(r"promo(?:\s*(?:end\w*|expir\w*|until|to|through|thru))\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", low)
         if match:
             out["promo_end"] = match.group(1)
+            continue
+        # 'APR 0% promo until 2027-08-01' in one segment: the rate next to a promo window is the promo rate (BOOK_SCHEMA.md).
+        match = re.match(
+            r"apr\s*([0-9.]+)\s*%?\s*promo(?:tional)?\s*(?:end\w*|expir\w*|until|to|through|thru)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})",
+            low,
+        )
+        if match:
+            out["promo_apr"] = float(match.group(1))
+            out["promo_end"] = match.group(2)
             continue
         match = re.match(
             r"apr\s*([0-9.]+)\s*%?\s*(?:to|until|through)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})",
@@ -1849,15 +1858,14 @@ def parse_terms(line):
         if match:
             out["extra_principal_policy"] = match.group(1)
             continue
+    # A bare 'APR 0%' next to a promo window is the promo rate, with or without a purchase APR on the line (BOOK_SCHEMA.md;
+    # owner OK 2026-11-20 after parser case 10 showed the purchase APR made the parser drop it).
+    if bare_apr == 0 and out.get("promo_end") and "promo_apr" not in out:
+        out["promo_apr"] = 0.0
     if purchase is not None:
         out["apr"] = purchase
-    elif bare_apr is not None:
-        if bare_apr == 0 and out.get("promo_end") and out.get("promo_apr") == 0:
-            pass
-        elif bare_apr == 0 and out.get("promo_end") and "promo_apr" not in out:
-            out["promo_apr"] = 0.0
-        else:
-            out["apr"] = bare_apr
+    elif bare_apr is not None and not (bare_apr == 0 and out.get("promo_end") and out.get("promo_apr") == 0):
+        out["apr"] = bare_apr
     if deferred:
         out["deferred_interest"] = True
     if out.get("frequency") == "biweekly":

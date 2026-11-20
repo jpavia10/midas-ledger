@@ -340,6 +340,19 @@ class RepairTest(unittest.TestCase):
         self.assertNotEqual(warehouse["balance"], 500)
         self.assertNotEqual(warehouse["balance"], 200)
 
+    def test_promo_window_wordings(self):
+        """BOOK_SCHEMA.md: a bare APR 0% next to a promo window is the promo rate (parser case 10, fixed 2026-11-20)."""
+        cases = [
+            ("apr 0% promo until 2027-08-01 · purchase apr 25.99%", {"promo_apr": 0.0, "promo_end": "2027-08-01", "apr": 25.99}),
+            ("apr 0% · promo until 2027-06-15 · purchase apr 28.99%", {"promo_apr": 0.0, "promo_end": "2027-06-15", "apr": 28.99}),
+            ("promo end 2027-06-15 · APR 0%", {"promo_apr": 0.0, "promo_end": "2027-06-15"}),
+            ("promo 0% to 2027-03-31 · APR 27.99%", {"promo_apr": 0.0, "promo_end": "2027-03-31", "apr": 27.99}),
+            ("APR 0% · min $50 · due 28", {"apr": 0.0, "min_payment": 50.0, "due_day": 28}),
+            ("promo 5% to 2027-01-01 · APR 0%", {"promo_apr": 5.0, "promo_end": "2027-01-01", "apr": 0.0}),
+        ]
+        for line, want in cases:
+            self.assertEqual(build.parse_terms(line), want, line)
+
     def test_unknown_minimum_is_not_the_autopay(self):
         md = """
 ## Cards (detail)

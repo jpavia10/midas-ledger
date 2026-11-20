@@ -2,8 +2,8 @@
 
 Written by Gemini (midas_gemini_parser-cases_20261118-1940.json), checked against build.py by Claude on 2026-11-20:
 22 of 25 agreed as written (7 of them under a field name build.py does not write; corrected here, see each case's
-"notes"). Case 18 and 24 are rewritten in the schema's own syntax. Case 10 is a known gap, kept as an expected failure
-so it turns green the day the parser reads it. Made-up numbers only, never a real ledger.
+"notes"). Case 18 and 24 are rewritten in the schema's own syntax. Case 10 found a parser gap ('apr 0% promo until DATE'),
+fixed 2026-11-20 with Joseph's OK; a case may still carry "known_gap" to be held as an expected failure. Made-up numbers only.
 Run: python3 -m unittest test/test_parser_cases.py
 """
 import json

@@ -614,6 +614,85 @@
      "reopened": "2026-11-20",
      "review": "Done 2026-11-21 (Claude): the redo passes every check; a few refs point near the rule rather than at it (build.py:469-472 and BOOK_SCHEMA.md:26 for the autopay rule). Score 9/10 (#13).",
      "closed": "2026-11-21"
+    },
+    {
+     "state": "now",
+     "added": "2026-11-21",
+     "why": "The terms parser is tested on 55 cases; real agreements word promotions in many more ways. A larger real corpus shows what it misses before any change is made.",
+     "unlocks": "Claude runs all 60 through build.py and reports the gaps to Joseph; the parser itself changes only with his OK.",
+     "inputs": [
+      "The CFPB Credit Card Agreement Database (consumerfinance.gov/credit-cards/agreements/) and the issuers' own pricing pages"
+     ],
+     "steps": [
+      "From 20 different issuers' current agreements, copy 60 sentences that state a promotional APR and its end, a deferred-interest promotion, a 'no interest if paid in full' offer, or a minimum-payment formula (3 per issuer).",
+      "For each: the issuer, the agreement's date, the exact sentence (under 300 characters), and what it means in plain terms: apr, promo_apr, promo_end rule, deferred_interest yes/no, min_payment formula.",
+      "Do not run or change the parser; this is data."
+     ],
+     "deliver": {
+      "file": "midas_gemini_terms-corpus_{YYYYMMDD-HHMM}.json",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "shape": "JSON array, one object per row, exactly the fields below"
+     },
+     "count": 60,
+     "fields": [
+      {
+       "name": "n",
+       "type": "integer",
+       "rule": "row"
+      },
+      {
+       "name": "issuer",
+       "type": "text",
+       "rule": "name"
+      },
+      {
+       "name": "agreement_date",
+       "type": "text",
+       "rule": "as printed"
+      },
+      {
+       "name": "kind",
+       "type": "text",
+       "rule": "promo / deferred / no-interest-if-paid / minimum"
+      },
+      {
+       "name": "means",
+       "type": "text",
+       "rule": "plain-terms reading: apr, promo_apr, promo_end, deferred_interest, min_payment"
+      },
+      {
+       "name": "url",
+       "type": "URL",
+       "rule": "the official page or PDF"
+      },
+      {
+       "name": "quote",
+       "type": "text",
+       "rule": "under 300 characters, word for word"
+      }
+     ],
+     "self_check": [
+      "Every row has a URL you opened yourself today, on the maker's, agency's or store's own site (never a blog, forum, wiki, reseller, or AI summary).",
+      "Every quote is copied word for word from that page or PDF page and is there now.",
+      "Every number has its unit in its own field; anything worked out shows its arithmetic in the field that says 'math'.",
+      "No row is a copy of another with the names changed.",
+      "The file is valid JSON (or exactly the Markdown asked for) and is named exactly as asked."
+     ],
+     "done_when": "60 sentences from 20 issuers, each from the CFPB database or the issuer.",
+     "checks": [
+      "Claude opens 10 agreements and runs all 60 through build.py's parse_terms."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a URL that does not open, is a home page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens rows at random)",
+      "arithmetic that does not add up when Claude redoes it",
+      "a file saved anywhere but the folder named here, or under another name",
+      "a guess written as a fact (write 'not stated' and name the page you checked)"
+     ],
+     "id": "MID-GEM-13",
+     "title": "Midas: 60 real promo, deferred-interest and minimum-payment wordings from 20 issuers' card agreements (test corpus only)",
+     "due": "2026-12-03"
     }
    ]
   },

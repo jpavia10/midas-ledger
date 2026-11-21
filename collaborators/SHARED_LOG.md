@@ -2,6 +2,9 @@
 
 Newest first. Every contributor (Claude and every AI) adds a dated 2-3 line entry after a change.
 
+### [2026-11-21] Claude: Gemini's spec redo scored (MID-GEM-11, 9/10)
+- The run-3 function spec passes every check; a few file:line refs point near a rule instead of at it (row #13). The parser gaps it lists are trial 5's; the parser stays as it is until Joseph says yes.
+
 ### [2026-11-20] MID-GEM-12: parser trial for Gemini (owner: test the new model first)
 - 30 new terms cases (15 real issuer wordings, 15 edge cases), each with what build.py returns today worked out from the code. Claude runs them; any gap between build.py and BOOK_SCHEMA.md goes to Joseph before the parser changes (protected internal).
 

@@ -523,7 +523,7 @@
     {
      "id": "MID-GEM-11",
      "title": "Midas Ledger: the function spec, written as the build plan",
-     "state": "now",
+     "state": "done",
      "due": "2026-11-30",
      "why": "Owner, 2026-11-16: homework that is legit (it changes what the pillar can do) and detailed enough that it cannot be done wrong.",
      "unlocks": "Joseph goes pillar by pillar, function before form; this file is the plan Claude builds Midas Ledger from, step by step.",
@@ -612,7 +612,8 @@
       "a personal detail (address, names, devices, accounts) that is not in the pillar's own code or data"
      ],
      "reopened": "2026-11-20",
-     "review": "Sent back 2026-11-20: midas_gemini_function-spec_20261118-1940.md now describes the real code (Muse's first read found an invented app in the 1735 version), but it lost the counts: B has 3 items and none is 'As Joseph, when ..., I want ..., so that ...' (8+); C is a list, not the table; E has 7 rules (10+); F has 4 tests, none Given/when/then (12+). Its build.py lines point at other code (parse_terms is at build.py:1767, not 130-165; net worth at 1671, not 305-330), and C and E state fields build.py does not write (warnings, change, duplicate: 'DUPLICATE', plan.mode, totals). F1 claims 25/25 for the parser cases; 22 hold (test/test_parser_cases.py). Write it again from the live code; run node tools/kit/check_delivery.mjs on it from a checkout of jpavia10/prometheus-hub."
+     "review": "Done 2026-11-21 (Claude): the redo passes every check; a few refs point near the rule rather than at it (build.py:469-472 and BOOK_SCHEMA.md:26 for the autopay rule). Score 9/10 (#13).",
+     "closed": "2026-11-21"
     }
    ]
   },

@@ -2,8 +2,49 @@
 
 # Midas Ledger · homework for Muse
 
-Updated 2026-11-21 15:56 UTC · 0 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Sebastian/HOMEWORK — Muse (every pillar)'.
+Updated 2026-11-22 03:21 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Sebastian/HOMEWORK — Muse (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
-No homework for Muse in Midas Ledger right now. Check your HOMEWORK doc for the other pillars.
+## 1. MID-MUS-04 · Midas: second reader on Gemini's 60 verbatim card-agreement clauses
+
+**Due:** 2026-12-03 · **State:** now
+
+**Why:** The clauses become test material for the statement parser; a wrong clause would teach the tests a wrong case.
+
+**What it unlocks:** Claude adds the checked clauses to the parser's test material (the parser itself stays as it is).
+
+**Read first:**
+- Gemini's file midas_gemini_terms-corpus_20261121-*.json (MID-GEM-13)
+
+**Do this:**
+1. Pick 15 clauses at random (say how), covering every 'kind'.
+2. Open each URL and check the quote is the agreement's own words, and that 'kind' and 'means' say what the clause says.
+3. List any clause whose agreement date is not on the document.
+
+**Make:** `midas_muse_terms-check_{YYYYMMDD-HHMM}.md`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)
+
+**Shape:** `markdown table: n | Gemini says | what I found | URL | agree/differ`
+
+**Every field, exactly:**
+- `agree/differ` (agree or differ): differ needs what you found and where
+
+**Before you save, check every one of these yourself:**
+- [ ] Every differ line says where you looked.
+- [ ] You did not change Gemini's file.
+
+**How many:** 15
+
+**Done when:** Every picked clause checked with where you looked.
+
+**How Claude checks it:**
+- Claude re-checks 3 of your differ lines.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field
+- a row copied from another row with the names changed
+- a URL that does not open, is a front page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens 10 rows at random)
+- a file saved anywhere but the folder named here, or under another name

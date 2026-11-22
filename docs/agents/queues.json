@@ -616,7 +616,7 @@
      "closed": "2026-11-21"
     },
     {
-     "state": "now",
+     "state": "done",
      "added": "2026-11-21",
      "why": "The terms parser is tested on 55 cases; real agreements word promotions in many more ways. A larger real corpus shows what it misses before any change is made.",
      "unlocks": "Claude runs all 60 through build.py and reports the gaps to Joseph; the parser itself changes only with his OK.",
@@ -692,7 +692,83 @@
      ],
      "id": "MID-GEM-13",
      "title": "Midas: 60 real promo, deferred-interest and minimum-payment wordings from 20 issuers' card agreements (test corpus only)",
-     "due": "2026-12-03"
+     "due": "2026-12-03",
+     "closed": "2026-11-22",
+     "review": "Done 2026-11-22 (Claude): 60 verbatim clauses from 20 issuers' agreements (33 minimum, 19 promo, 4 deferred, 4 no-interest-if-paid). Data for parser tests only (the parser is protected). not second-read yet (its pages are blocked from Claude's container); Muse checks it before it is built on. Score 10/10 (#14 in Midas)."
+    },
+    {
+     "state": "now",
+     "added": "2026-11-22",
+     "why": "The parser reads statements; real phrasings make its tests honest (data only: the parser itself is protected).",
+     "unlocks": "Claude adds the lines to the parser's test material; nothing in the parser changes without the owner.",
+     "inputs": [
+      "Issuers' public sample statements and 'how to read your statement' pages (Synchrony, Citi, Chase, Capital One, Discover, Amex, Wells Fargo, Bread)",
+      "Gemini's file midas_gemini_terms-corpus_20261121-1305.json for the issuers"
+     ],
+     "steps": [
+      "Find 40 lines, at least 5 issuers, that show a promotional or deferred-interest balance, its end date, or the interest that would be charged.",
+      "Copy each line exactly as the sample statement prints it."
+     ],
+     "deliver": {
+      "file": "midas_gemini_statement-lines_{YYYYMMDD-HHMM}.json",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "shape": "JSON array, one object per row, exactly the fields below"
+     },
+     "count": 40,
+     "fields": [
+      {
+       "name": "n",
+       "type": "number",
+       "rule": "1, 2, 3 ..."
+      },
+      {
+       "name": "issuer",
+       "type": "text",
+       "rule": "name"
+      },
+      {
+       "name": "line",
+       "type": "text",
+       "rule": "exactly as printed"
+      },
+      {
+       "name": "kind",
+       "type": "text",
+       "rule": "promo, deferred, end date, or accrued interest"
+      },
+      {
+       "name": "url",
+       "type": "url",
+       "rule": "the page you opened, on the official site"
+      },
+      {
+       "name": "quote",
+       "type": "text",
+       "rule": "copied word for word from that page, 300 characters at most"
+      }
+     ],
+     "self_check": [
+      "Every row has a URL you opened yourself today, on the maker's, agency's or store's own site (never a blog, forum, wiki, reseller, or AI summary).",
+      "Every quote is copied word for word from that page or PDF page and is there now.",
+      "Every number has its unit in its own field; anything worked out shows its arithmetic in the field that says 'math'.",
+      "No row is a copy of another with the names changed.",
+      "The file is valid JSON (or exactly the Markdown asked for) and is named exactly as asked."
+     ],
+     "done_when": "40 lines from at least 5 issuers.",
+     "checks": [
+      "Claude opens 12 rows at random against their pages and redoes every 'math' field."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a URL that does not open, is a home page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens rows at random)",
+      "arithmetic that does not add up when Claude redoes it",
+      "a file saved anywhere but the folder named here, or under another name",
+      "a guess written as a fact (write 'not stated' and name the page you checked)"
+     ],
+     "id": "MID-GEM-14",
+     "title": "Midas: 40 statement-line phrasings of promo and deferred-interest balances, from issuers' public sample statements",
+     "due": "2026-12-06"
     }
    ]
   },
@@ -934,6 +1010,51 @@
      ],
      "closed": "2026-11-20",
      "review": "Done 2026-11-20: 11 of 15 rules confirmed, rows 6, 7, 10 and 15 caught; the hub's Flex rows now carry these checks. One point lost: the shared Citi URL and paraphrased quotes were not flagged. Score 9."
+    },
+    {
+     "id": "MID-MUS-04",
+     "title": "Midas: second reader on Gemini's 60 verbatim card-agreement clauses",
+     "state": "now",
+     "added": "2026-11-22",
+     "due": "2026-12-03",
+     "why": "The clauses become test material for the statement parser; a wrong clause would teach the tests a wrong case.",
+     "unlocks": "Claude adds the checked clauses to the parser's test material (the parser itself stays as it is).",
+     "inputs": [
+      "Gemini's file midas_gemini_terms-corpus_20261121-*.json (MID-GEM-13)"
+     ],
+     "steps": [
+      "Pick 15 clauses at random (say how), covering every 'kind'.",
+      "Open each URL and check the quote is the agreement's own words, and that 'kind' and 'means' say what the clause says.",
+      "List any clause whose agreement date is not on the document."
+     ],
+     "deliver": {
+      "file": "midas_muse_terms-check_{YYYYMMDD-HHMM}.md",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "shape": "markdown table: n | Gemini says | what I found | URL | agree/differ"
+     },
+     "fields": [
+      {
+       "name": "agree/differ",
+       "type": "agree or differ",
+       "rule": "differ needs what you found and where"
+      }
+     ],
+     "self_check": [
+      "Every differ line says where you looked.",
+      "You did not change Gemini's file."
+     ],
+     "count": 15,
+     "done_when": "Every picked clause checked with where you looked.",
+     "checks": [
+      "Claude re-checks 3 of your differ lines."
+     ],
+     "rejected_if": [
+      "fewer rows than the count, or a row missing a field",
+      "a row copied from another row with the names changed",
+      "a URL that does not open, is a front page or a search page, or does not say what the row claims",
+      "a quote that is not on the page it cites (Claude opens 10 rows at random)",
+      "a file saved anywhere but the folder named here, or under another name"
+     ]
     }
    ]
   },

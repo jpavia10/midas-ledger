@@ -2,40 +2,39 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-21 15:56 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-22 03:21 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
-## 1. MID-GEM-13 · Midas: 60 real promo, deferred-interest and minimum-payment wordings from 20 issuers' card agreements (test corpus only)
+## 1. MID-GEM-14 · Midas: 40 statement-line phrasings of promo and deferred-interest balances, from issuers' public sample statements
 
-**Due:** 2026-12-03 · **State:** now
+**Due:** 2026-12-06 · **State:** now
 
-**Why:** The terms parser is tested on 55 cases; real agreements word promotions in many more ways. A larger real corpus shows what it misses before any change is made.
+**Why:** The parser reads statements; real phrasings make its tests honest (data only: the parser itself is protected).
 
-**What it unlocks:** Claude runs all 60 through build.py and reports the gaps to Joseph; the parser itself changes only with his OK.
+**What it unlocks:** Claude adds the lines to the parser's test material; nothing in the parser changes without the owner.
 
 **Read first:**
-- The CFPB Credit Card Agreement Database (consumerfinance.gov/credit-cards/agreements/) and the issuers' own pricing pages
+- Issuers' public sample statements and 'how to read your statement' pages (Synchrony, Citi, Chase, Capital One, Discover, Amex, Wells Fargo, Bread)
+- Gemini's file midas_gemini_terms-corpus_20261121-1305.json for the issuers
 
 **Do this:**
-1. From 20 different issuers' current agreements, copy 60 sentences that state a promotional APR and its end, a deferred-interest promotion, a 'no interest if paid in full' offer, or a minimum-payment formula (3 per issuer).
-2. For each: the issuer, the agreement's date, the exact sentence (under 300 characters), and what it means in plain terms: apr, promo_apr, promo_end rule, deferred_interest yes/no, min_payment formula.
-3. Do not run or change the parser; this is data.
+1. Find 40 lines, at least 5 issuers, that show a promotional or deferred-interest balance, its end date, or the interest that would be charged.
+2. Copy each line exactly as the sample statement prints it.
 
-**Make:** `midas_gemini_terms-corpus_{YYYYMMDD-HHMM}.json`
+**Make:** `midas_gemini_statement-lines_{YYYYMMDD-HHMM}.json`
 
 **Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)
 
 **Shape:** `JSON array, one object per row, exactly the fields below`
 
 **Every field, exactly:**
-- `n` (integer): row
+- `n` (number): 1, 2, 3 ...
 - `issuer` (text): name
-- `agreement_date` (text): as printed
-- `kind` (text): promo / deferred / no-interest-if-paid / minimum
-- `means` (text): plain-terms reading: apr, promo_apr, promo_end, deferred_interest, min_payment
-- `url` (URL): the official page or PDF
-- `quote` (text): under 300 characters, word for word
+- `line` (text): exactly as printed
+- `kind` (text): promo, deferred, end date, or accrued interest
+- `url` (url): the page you opened, on the official site
+- `quote` (text): copied word for word from that page, 300 characters at most
 
 **Before you save, check every one of these yourself:**
 - [ ] Every row has a URL you opened yourself today, on the maker's, agency's or store's own site (never a blog, forum, wiki, reseller, or AI summary).
@@ -44,12 +43,12 @@ Updated 2026-11-21 15:56 UTC · 1 open · Rules for every pillar: https://github
 - [ ] No row is a copy of another with the names changed.
 - [ ] The file is valid JSON (or exactly the Markdown asked for) and is named exactly as asked.
 
-**How many:** 60
+**How many:** 40
 
-**Done when:** 60 sentences from 20 issuers, each from the CFPB database or the issuer.
+**Done when:** 40 lines from at least 5 issuers.
 
 **How Claude checks it:**
-- Claude opens 10 agreements and runs all 60 through build.py's parse_terms.
+- Claude opens 12 rows at random against their pages and redoes every 'math' field.
 
 **Not done (sent back) if:**
 - fewer rows than the count, or a row missing a field

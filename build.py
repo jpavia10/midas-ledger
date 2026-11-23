@@ -1771,7 +1771,10 @@ def parse_terms(line):
     min $0 is a real minimum. 'min unknown' stays unknown and is not an autopay amount.
     """
     body = re.sub(r"^\s*terms:\s*", "", line, flags=re.I)
-    deferred = bool(re.search(r"deferred[\s-]*interest", body, re.I))
+    # 'no deferred interest' (or 'deferred interest: none') says the opposite (Gemini's parser case 26; Joseph's OK 2026-11-23).
+    deferred = any(re.search(r"deferred[\s-]*interest", seg, re.I)
+                   and not re.search(r"\b(?:no|not|without|non)[\s-]+deferred|deferred[\s-]*interest\s*[:=]?\s*(?:no|none|false)\b", seg, re.I)
+                   for seg in re.split(r"·|\|", body))
     out = {}
     purchase = None
     bare_apr = None
@@ -1782,7 +1785,7 @@ def parse_terms(line):
             purchase = float(match.group(1))
             continue
         match = re.match(
-            r"promo(?:\s*apr)?\s*([0-9.]+)\s*%?\s*(?:to|until|through)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})",
+            r"promo(?:\s*apr)?\s*([0-9.]+)\s*%?\s*(?:to|until|through|thru)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})",
             low,
         )
         if match:
@@ -1803,7 +1806,7 @@ def parse_terms(line):
             out["promo_end"] = match.group(2)
             continue
         match = re.match(
-            r"apr\s*([0-9.]+)\s*%?\s*(?:to|until|through)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})",
+            r"apr\s*([0-9.]+)\s*%?\s*(?:to|until|through|thru)\s*([0-9]{4}-[0-9]{2}-[0-9]{2})",
             low,
         )
         if match:
@@ -1821,7 +1824,7 @@ def parse_terms(line):
         if match:
             out["min_payment"] = num(match.group(1))
             continue
-        match = re.match(r"due\s*(?:day\s*)?([0-9]{1,2})\b", low)
+        match = re.match(r"due\s*(?:day\s*)?([0-9]{1,2})(?:st|nd|rd|th)?\b", low)   # 'due 15th' (case 20)
         if match and "promo" not in low and 1 <= int(match.group(1)) <= 31:
             out["due_day"] = int(match.group(1))
             continue
@@ -1862,6 +1865,11 @@ def parse_terms(line):
     # owner OK 2026-11-20 after parser case 10 showed the purchase APR made the parser drop it).
     if bare_apr == 0 and out.get("promo_end") and "promo_apr" not in out:
         out["promo_apr"] = 0.0
+    # Any bare APR beside a promo window is the promo rate when the line also names the purchase APR: 'APR 3.99% · promo end
+    # 2027-09-01 · purchase APR 24.99%' (Gemini's parser case 21; Joseph's OK 2026-11-23). Without a purchase APR a non-zero
+    # bare APR stays the APR, as before.
+    elif bare_apr is not None and purchase is not None and out.get("promo_end") and "promo_apr" not in out:
+        out["promo_apr"] = bare_apr
     if purchase is not None:
         out["apr"] = purchase
     elif bare_apr is not None and not (bare_apr == 0 and out.get("promo_end") and out.get("promo_apr") == 0):

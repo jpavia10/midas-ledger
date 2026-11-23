@@ -2,6 +2,10 @@
 
 Newest first. Every contributor (Claude and every AI) adds a dated 2-3 line entry after a change.
 
+### [2026-11-23] Claude: four parser gaps from Gemini's trial 5 fixed (Joseph's OK: "Yes continue")
+- parse_terms: `no deferred interest` (and `deferred interest: none`, `non-deferred`) no longer sets deferred interest (case 26); a bare APR beside a promo window is the promo rate when the line also names the purchase APR (case 21: 3.99 % was dropped); `due 15th` reads day 15 (case 20); `thru` works in every promo-window pattern (case 28). Without a purchase APR a non-zero bare APR stays `apr`, as before.
+- test/test_parser_trial5.py pins the four cases word for word and the old behaviour beside them; `npm run check` 51 tests OK; trial 5 now agrees with Gemini's expectations on all four. BOOK_SCHEMA.md says the new readings. Takes effect on the next book build (publish.sh); the live page does not change until then.
+
 ### [2026-11-21] Claude: Gemini's spec redo scored (MID-GEM-11, 9/10)
 - The run-3 function spec passes every check; a few file:line refs point near a rule instead of at it (row #13). The parser gaps it lists are trial 5's; the parser stays as it is until Joseph says yes.
 

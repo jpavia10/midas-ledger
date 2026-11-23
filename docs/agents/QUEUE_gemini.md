@@ -2,27 +2,27 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-23 16:12 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-23 22:49 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
-## 1. MID-GEM-14 · Midas: 40 statement-line phrasings of promo and deferred-interest balances, from issuers' public sample statements
+## 1. MID-GEM-15 · Midas: 30 minimum-payment and payment-due lines from issuers' sample statements
 
 **Due:** 2026-12-06 · **State:** now
 
-**Why:** The parser reads statements; real phrasings make its tests honest (data only: the parser itself is protected).
+**Why:** Your 40 promo lines became test material; the other half of a statement the parser reads is the minimum payment and due date block.
 
-**What it unlocks:** Claude adds the lines to the parser's test material; nothing in the parser changes without the owner.
+**What it unlocks:** Claude adds them to the parser's test material (the parser itself stays protected).
 
 **Read first:**
-- Issuers' public sample statements and 'how to read your statement' pages (Synchrony, Citi, Chase, Capital One, Discover, Amex, Wells Fargo, Bread)
-- Gemini's file midas_gemini_terms-corpus_20261121-1305.json for the issuers
+- Issuers' public sample statements and 'how to read your statement' pages (Synchrony, Citi, Chase, Capital One, Discover, Amex, Wells Fargo, Bread, Barclays)
+- Regulation Z model forms G-18 (minimum payment warning)
 
 **Do this:**
-1. Find 40 lines, at least 5 issuers, that show a promotional or deferred-interest balance, its end date, or the interest that would be charged.
-2. Copy each line exactly as the sample statement prints it.
+1. Find 30 lines from at least 6 issuers that state the minimum payment, the payment due date, the late fee, or the minimum payment warning.
+2. Copy each line exactly as printed.
 
-**Make:** `midas_gemini_statement-lines_{YYYYMMDD-HHMM}.json`
+**Make:** `midas_gemini_payment-lines_{YYYYMMDD-HHMM}.json`
 
 **Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)
 
@@ -30,9 +30,9 @@ Updated 2026-11-23 16:12 UTC · 1 open · Rules for every pillar: https://github
 
 **Every field, exactly:**
 - `n` (number): 1, 2, 3 ...
-- `issuer` (text): name
+- `issuer` (text): 
 - `line` (text): exactly as printed
-- `kind` (text): promo, deferred, end date, or accrued interest
+- `kind` (text): minimum, due date, late fee or warning
 - `url` (url): the page you opened, on the official site
 - `quote` (text): copied word for word from that page, 300 characters at most
 
@@ -43,9 +43,9 @@ Updated 2026-11-23 16:12 UTC · 1 open · Rules for every pillar: https://github
 - [ ] No row is a copy of another with the names changed.
 - [ ] The file is valid JSON (or exactly the Markdown asked for) and is named exactly as asked.
 
-**How many:** 40
+**How many:** 30
 
-**Done when:** 40 lines from at least 5 issuers.
+**Done when:** 30 lines from at least 6 issuers.
 
 **How Claude checks it:**
 - Claude opens 12 rows at random against their pages and redoes every 'math' field.

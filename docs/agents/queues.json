@@ -805,7 +805,8 @@
      "rejected_if": [
       "a number guessed or carried over without an as_of date",
       "plaintext balances anywhere outside the encrypted book"
-     ]
+     ],
+     "handover": "Grok is being phased out (Joseph, 2026-11-23: cancelling in about a month). It holds the private ledger, the Plaid refresh and the page password, so this job needs a new owner before then; Joseph decides who (nothing moves without his OK)."
     },
     {
      "id": "MID-GRK-02",
@@ -833,12 +834,13 @@
      ],
      "rejected_if": [
       "a week missed"
-     ]
+     ],
+     "handover": "Grok is being phased out (Joseph, 2026-11-23: cancelling in about a month). It holds the private ledger, the Plaid refresh and the page password, so this job needs a new owner before then; Joseph decides who (nothing moves without his OK)."
     },
     {
      "id": "MID-GRK-04",
      "title": "Midas Ledger: second reader on Gemini's 'the function spec, written as the build plan'",
-     "state": "next",
+     "state": "withdrawn",
      "due": "2026-11-27",
      "why": "Nothing Gemini delivers is built on until a second reader has checked it.",
      "unlocks": "Claude builds from the file only after this check.",
@@ -879,9 +881,12 @@
       "a URL that does not open, is a front page or a search page, or does not say what the row claims",
       "a quote that is not on the page it cites (Claude opens 10 rows at random)",
       "a file saved anywhere but the folder named here, or under another name"
-     ]
+     ],
+     "closed": "2026-11-23",
+     "review": "Withdrawn 2026-11-23 (Claude): Grok is being phased out (Joseph cancels it in about a month). Claude reads the spec against the code when it builds."
     }
-   ]
+   ],
+   "note": "PHASING OUT (Joseph, 2026-11-23: Grok will be cancelled in about a month). Keep the weekly book (MID-GRK-02) and the debt terms (MID-GRK-01) going until Joseph names who takes them over; nothing else."
   },
   {
    "id": "muse",
@@ -1065,7 +1070,7 @@
     {
      "id": "MID-GPT-01",
      "title": "Audit Midas v2 on the made-up book: 20 findings",
-     "state": "now",
+     "state": "parked",
      "due": "2026-11-14",
      "why": "After Claude ships the new design, a second pair of eyes on it.",
      "inputs": [
@@ -1090,7 +1095,8 @@
       "a source URL that does not open or does not say what the row claims",
       "fewer items than the count",
       "a file saved anywhere but the folder named here, or under another name"
-     ]
+     ],
+     "review": "Parked 2026-11-23 (Claude): Joseph relies on Gemini from now on."
     }
    ]
   },

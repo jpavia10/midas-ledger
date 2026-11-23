@@ -2,38 +2,8 @@
 
 # Midas Ledger · homework for ChatGPT
 
-Updated 2026-11-22 03:36 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/ChatGPT/HOMEWORK — ChatGPT (every pillar)'.
+Updated 2026-11-23 16:11 UTC · 0 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/ChatGPT/HOMEWORK — ChatGPT (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
-## 1. MID-GPT-01 · Audit Midas v2 on the made-up book: 20 findings
-
-**Due:** 2026-11-14 · **State:** now
-
-**Why:** After Claude ships the new design, a second pair of eyes on it.
-
-**Read first:**
-- https://jpavia10.github.io/midas-ledger/ shows the password screen; to see every screen with a made-up book, run it locally: python3 -m http.server 8742 in a checkout, then http://127.0.0.1:8742/?hud=1 (README, 'Pages')
-
-**Do this:**
-1. Use every tab on a phone-sized screen.
-2. 20 findings: where / what is wrong / fix / severity 1-3; at least 6 about whether it makes you want to pay debt down.
-
-**Make:** `midas_chatgpt_audit_{YYYYMMDD-HHMM}.md`
-
-**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/
-
-**Shape:** `numbered list, 20 items`
-
-**How many:** 20
-
-**Done when:** 20 findings Claude can reproduce.
-
-**How Claude checks it:**
-- Claude reproduces 5 at random.
-
-**Not done (sent back) if:**
-- a row copied from another row with the names changed
-- a source URL that does not open or does not say what the row claims
-- fewer items than the count
-- a file saved anywhere but the folder named here, or under another name
+No homework for ChatGPT in Midas Ledger right now. Check your HOMEWORK doc for the other pillars.

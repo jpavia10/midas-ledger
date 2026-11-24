@@ -2,7 +2,7 @@
 
 # Midas Ledger · homework for Gemini
 
-Updated 2026-11-23 22:49 UTC · 1 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
+Updated 2026-11-24 03:00 UTC · 2 open · Rules for every pillar: https://github.com/jpavia10/prometheus-hub/blob/main/AI_START_HERE.md. Your homework in every pillar on one page: Drive doc 'Prometheus Hub/Gemini/HOMEWORK — Gemini (every pillar)'.
 
 **WHEN A TASK IS DONE (this is what makes the Forge show it as done): open the ONE file forge-completions.json (Drive folder Sebastian, https://drive.google.com/file/d/1QEaQylVPtfbAczGDBkt4GAwIVGyY372W/view) and EDIT THAT FILE: add one entry to its "done" list, {"key": "<task id>", "by": "<your name>", "what": "<file name> in <folder>", "ts": "<now, UTC, ISO 8601>"}, set "updated", save. Never upload a new file named forge-completions.json: a second copy is invisible to the Forge until the twice-daily fold; the original reaches it at the next automatic sync (a few times a day).**
 
@@ -46,6 +46,63 @@ Updated 2026-11-23 22:49 UTC · 1 open · Rules for every pillar: https://github
 **How many:** 30
 
 **Done when:** 30 lines from at least 6 issuers.
+
+**How Claude checks it:**
+- Claude opens 12 rows at random against their pages and redoes every 'math' field.
+
+**Not done (sent back) if:**
+- fewer rows than the count, or a row missing a field
+- a URL that does not open, is a home page or a search page, or does not say what the row claims
+- a quote that is not on the page it cites (Claude opens rows at random)
+- arithmetic that does not add up when Claude redoes it
+- a file saved anywhere but the folder named here, or under another name
+- a guess written as a fact (write 'not stated' and name the page you checked)
+
+## 2. MID-GEM-16 · Midas: the full 2026 and 2027 federal and California rate tables, not just the headline limits
+
+**Due:** 2026-12-28 · **State:** now
+
+**Why:** Your tax-limits packet got every 2026 headline figure right, including California's $5,900. The book needs the whole tables to compute a year: every bracket, the capital-gains thresholds, AMT, the credits that phase out, and California's schedules for 2027 once FTB posts them.
+
+**What it unlocks:** Midas computes the household's 2026 tax and projects 2027 from official tables alone.
+
+**Read first:**
+- IRS Rev. Proc. 2025-32 (2026 inflation adjustments) and the 2027 revenue procedure (released October 2026), irs.gov
+- FTB's 2026 and 2027 tax rate schedules and exemption credits (ftb.ca.gov; 2027 posts in late December)
+- SSA's 2027 fact sheet (wage base, earnings test)
+
+**Do this:**
+1. Federal 2026 and 2027: every bracket edge for Single, Married filing jointly and Head of household; 0/15/20 % capital-gains thresholds; the 3.8 % NIIT thresholds (statutory, not indexed: say so); AMT exemption and phase-out; Child Tax Credit and its phase-out; the earned income credit table for 0-3 children.
+2. California 2026 and 2027: every bracket edge for Single and Joint, the personal and dependent exemption credits and their phase-out, the mental health services tax threshold.
+3. Each row from the revenue procedure or FTB page with section or table number; a 2027 California row is 'not stated' until FTB posts it, with the date you checked.
+
+**Make:** `midas_gemini_rate-tables-2026-2027_{YYYYMMDD-HHMM}.json`
+
+**Save in:** Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)
+
+**Shape:** `JSON array, one object per row, exactly the fields below`
+
+**Every field, exactly:**
+- `n` (number): 1, 2, 3 ...
+- `tax_year` (number): 2026 or 2027
+- `jurisdiction` (text): Federal or California
+- `table` (text): brackets, capital gains, AMT, credit, ...
+- `filing_status` (text): Single, MFJ, HOH
+- `rate_pct` (number): the rate, or blank for a threshold row
+- `from_usd` (number): lower edge
+- `to_usd` (number): upper edge, blank for the top
+- `authority` (text): Rev. Proc. section or FTB table
+- `url` (url): the page or PDF you opened
+- `quote` (text): copied word for word, 300 characters at most
+
+**Before you save, check every one of these yourself:**
+- [ ] Every row has a URL you opened yourself today, on the maker's, agency's or store's own site (never a blog, forum, wiki, reseller, or AI summary).
+- [ ] Every quote is copied word for word from that page or PDF page and is there now.
+- [ ] Every number has its unit in its own field; anything worked out shows its arithmetic in the field that says 'math'.
+- [ ] No row is a copy of another with the names changed.
+- [ ] The file is valid JSON (or exactly the Markdown asked for) and is named exactly as asked.
+
+**Done when:** Every federal table for both years and California's 2026 tables; California 2027 filled once FTB posts it (check again after Dec 20).
 
 **How Claude checks it:**
 - Claude opens 12 rows at random against their pages and redoes every 'math' field.

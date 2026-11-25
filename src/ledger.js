@@ -2,9 +2,13 @@
    localStorage "midasKey" is { salt, k } where k is the raw AES key (base64).
    A new salt asks for the password again. The password is never stored. */
 
-import { bindConsole, comingHtml, consoleHtml, onTab } from "./console.js";
+import { bindConsole, consoleHtml, onTab } from "./console.js";
+import { attention, owed, safeToSpend } from "./today.js";
+import { publish, read as readShared, setShare, shareOn, summary } from "./share.js";
+import { readHub } from "./bills.js";
+import { addMonths, wayOut } from "./plan.js";
 import { bindPlan, homeHeroHtml, planHtml } from "./wayout.js";
-import { bindCharts, compositionHtml, CYAN, flowChartsHtml, ROSE, sparkHtml, spendableOf } from "./charts.js";
+import { bindCharts, compositionHtml, CYAN, flowChartsHtml, networthHtml, positionFromCards, ROSE, sparkHtml, spendableOf } from "./charts.js";
 import { configureDesk, normalizeEntry, onDeskChange, readDesk } from "./desk.js";
 import { bindDetail, ORDER, setBook } from "./detail.js";
 import { applyAccountFilter, bindFilters, filterBarHtml, getFilter, paintFilter } from "./filter.js";
@@ -178,54 +182,95 @@ function bindTabs() {
   });
 }
 
-export function ledgerHtml(d) {
-  const h = d.headline || {};
-  const cards = d.cards || [];
-  const by = (section) => cards.filter((c) => c.section === section);
-  const have = spendableOf(d);
-  const floor = h.floor || 3000;
-  const pct = have == null ? 0 : Math.min(100, (have / floor) * 100);
-  const ordered = by("Cards (detail)").sort((a, b) => (ORDER[a.id]?.[0] ?? 9) - (ORDER[b.id]?.[0] ?? 9));
-  const attention = cards.filter((c) => (c.marks || []).includes("NEED YOU") || (c.marks || []).includes("STALE?") || (c.marks || []).includes("PAST DUE"));
-  const floorNote = have == null ? "" : (pct >= 100 ? "Above floor by " + money(have - floor) : "Short " + money(floor - have));
-  const bar = pct >= 100 ? "#9fe6c2" : ROSE;
-  const when = esc(d.ledger_update || d.ledger_revised || "");
-  const holds = (d.liquid && d.liquid.holds) || [];
-  const holdHtml = holds.length ? `<ul class="holds">${holds.map((hold) => `<li><span class="id">${esc(hold.acct || "")}</span> ${esc(hold.memo || hold.name || "Hold")} <b class="num">${money(hold.amount)}</b></li>`).join("")}</ul>` : `<p class="meta">No holds on the spendable accounts.</p>`;
+/* ---------------------------------------------------------------------------------------------------------------------------------------
+   Midas v4 (2026-11-25). The owner opened Midas after a while and called it "trash, no logic, poor effort", and it was: the first screen
+   was a clock, the tab bar sat on top of the money, the debt list ran in a hard-coded phase order that disagreed with the plan, the
+   paid-down bar mixed the mortgage into one number and not the other, and net worth lived under Flow. Five tabs now, each one job:
+     Today  what can be spent today (safe to spend), what is due before payday, what needs a hand, the way out
+     Spend  where the money went: in and out by month, categories, utilities, the recurring charges
+     Debt   what is owed (cards and loans, the mortgage apart), credit used, the plan in its real order, what if, the library
+     Worth  net worth from the book, its trend and make-up, what the other pillars know (the house's contents), every account
+     Book   the written pages, the log, what Midas shares with the other pillars, lock
+   --------------------------------------------------------------------------------------------------------------------------------------- */
+function money0(n) { return n == null ? "—" : (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 }); }
+const dayLabel = (s) => { try { return new Date(s + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); } catch (e) { return s; } };
+const todayIsoLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 
-  const overview = `<section class="panel hero hud-home" id="overview" data-tab-panel="home" data-shift="0" data-nav>
-    <div class="mast">
-      <div class="mast-title">
-        <p class="kicker"><span class="sq" aria-hidden="true"></span> The book</p>
-        <p class="greet"><span data-greet>Good evening</span></p>
-        <h1 id="overview-title" tabindex="-1">Midas</h1>
-        <p class="lede">Built ${esc(d.built_pt || "")} · ledger: ${when}</p>
+/** The safe-to-spend card. `st` is today.js safeToSpend(). */
+export function safeHtml(d, st) {
+  const holds = (d.liquid && d.liquid.holds) || [];
+  const have = st.spendable, floor = st.floor, pct = have == null ? 0 : Math.min(100, Math.max(0, (have / floor) * 100));
+  const bar = have != null && have >= floor ? "#9fe6c2" : ROSE;
+  const floorNote = have == null ? "" : (have >= floor ? "Above floor by " + money(have - floor) : "Short " + money(floor - have));
+  const until = st.payday ? `before payday ${esc(dayLabel(st.payday.date))}` : `in the next 14 days`;
+  const head = have == null ? `<p class="safe-big pending">unknown</p><p class="safe-sub">The book has no spendable balance yet.</p>`
+    : st.short > 0 ? `<p class="safe-kicker">Short of your floor</p><p class="safe-big num short">${money0(st.short)}</p>
+        <p class="safe-sub">${money0(have)} available, ${money0(st.dueSum)} due ${until}, and the floor is ${money0(floor)}. Nothing is safe to spend until the gap closes.</p>`
+    : `<p class="safe-kicker">Safe to spend</p><p class="safe-big num">${money0(st.safe)}</p>
+        <p class="safe-sub">${money0(have)} available − ${money0(st.dueSum)} due ${until} − your ${money0(floor)} floor.</p>`;
+  return `<article class="card glass lit safe opener" id="safe" ${opener("metric:banked")}>
+      ${head}
+      <div class="safe-math" aria-hidden="true">
+        <span><small>Available</small><b class="num">${money(have)}</b></span>
+        <span><small>Due ${st.payday ? "before payday" : "in 14 days"}</small><b class="num">${money(st.dueSum)}</b></span>
+        <span><small>Floor</small><b class="num">${money(floor)}</b></span>
       </div>
-      <div class="mast-time">
-        <time class="clock num" data-clock datetime="">—</time>
-        <p class="day-line" data-day></p>
-      </div>
-    </div>
-    ${homeHeroHtml(d)}
-    <article class="card glass lit metric opener" ${opener("metric:banked")}>
-      <div class="spend-row">
-        ${ring(pct, bar)}
-        <div>
-          <p class="kicker">Spendable available</p>
-          <p class="figure num glow">${money(have)}</p>
-          <p class="meta">Floor ${money(h.floor)} · ${floorNote}</p>
-        </div>
-      </div>
-      <div class="chart" data-chart="floor" data-banked="${have ?? ""}" data-floor="${h.floor ?? ""}">
+      <p class="kicker">Spendable available</p>
+      <div class="chart" data-chart="floor" data-banked="${have ?? ""}" data-floor="${d.headline && d.headline.floor != null ? d.headline.floor : ""}">
         <div class="bar" role="img" aria-label="${escAttr(floorNote)}"><i style="width:${pct}%;background:${bar}"></i></div>
         <p class="chart-tip" role="status" hidden></p>
       </div>
-      <p class="kicker holds-kicker">Holds</p>
-      ${holdHtml}
-    </article>
-  </section>`;
+      <p class="meta">${have == null ? "" : have >= floor ? `Before anything due: ${money(have - floor)} above the floor` : `Before anything due: ${money(floor - have)} under the floor`}${st.payday && st.payday.net != null ? ` · next pay ${esc(dayLabel(st.payday.date))}, about ${money0(st.payday.net)}` : ""}</p>
+      ${holds.length ? `<p class="kicker holds-kicker">Holds already taken out of available</p><ul class="holds">${holds.map((hold) => `<li><span class="id">${esc(hold.acct || "")}</span> ${esc(hold.memo || hold.name || "Hold")} <b class="num">${money(hold.amount)}</b></li>`).join("")}</ul>` : ""}
+    </article>`;
+}
 
-  const metrics = `<section class="overview-metrics" aria-label="Headline" data-tab-panel="home">
+/** What is due, one dated list (the book's minimums and the recurring charges). */
+export function comingHtml(st) {
+  const rows = st.dues.slice(0, 12);
+  const kind = { card: "card minimum", loan: "loan payment", mortgage: "mortgage", bill: "bill", subscription: "subscription" };
+  return `<section class="card glass coming" id="coming" data-coming-list aria-label="Due ${st.payday ? "before payday" : "in the next 14 days"}">
+      <div class="row"><p class="kicker">Due ${st.payday ? "before payday" : "in the next 14 days"}</p><b class="num">${money(st.dueSum)}</b></div>
+      ${rows.length ? `<ul class="due-list">${rows.map((x) => `<li class="due ${x.pastDue ? "late" : ""}"><span class="due-when">${esc(dayLabel(x.date))}</span><span class="due-name">${esc(x.name)}<small>${esc(kind[x.kind] || x.kind)}${x.autopay ? " · autopay" : ""}${x.pastDue ? " · past due" : ""}</small></span><b class="num">${money(x.amount)}</b></li>`).join("")}</ul>`
+        : `<p class="meta">Nothing due in the window. Card due days come from each card's terms line; bills from the recurring charges on Spend.</p>`}
+      ${st.dues.length > rows.length ? `<p class="meta">${st.dues.length - rows.length} more after these.</p>` : ""}
+      <button type="button" class="textbtn" data-tab="flow" data-jump="bills">Recurring charges →</button>
+    </section>`;
+}
+
+export function ledgerHtml(d, ctx = {}) {
+  const h = d.headline || {};
+  const cards = d.cards || [];
+  const by = (section) => cards.filter((c) => c.section === section);
+  const today = ctx.today || todayIsoLocal();
+  const st = safeToSpend(d, { today, bills: ctx.bills || [], atlas: ctx.atlas || null });
+  const owe = owed(d), w = wayOut(d), plan = w.methods[w.chosen];
+  const order = {}; if (plan && plan.payoff_month) for (const [id, m] of Object.entries(plan.payoff_month)) order[id] = m;
+  const worth = positionFromCards(d);
+  const net = worth.assets != null && worth.liabilities != null ? worth.assets - worth.liabilities : null;
+  const att = attention(d, today);
+  const when = esc(d.ledger_update || d.ledger_revised || "");
+  const util = owe.utilization;
+
+  /* ---------------------------------------------------------------- Today ---------------------------------------------------------------- */
+  const masthead = `<section class="mast4" id="overview" data-tab-panel="home" data-shift="0" data-nav>
+      <div><p class="kicker"><span class="sq" aria-hidden="true"></span> Midas Ledger</p>
+        <h1 id="overview-title" tabindex="-1">Today</h1>
+        <p class="lede">Built ${esc(d.built_pt || "")} · ledger: ${when}</p></div>
+      <button type="button" class="stress-chip" ${opener("metric:stress")} aria-label="Stress score ${escAttr(h.stress ?? "unknown")} of 1000, lower is better"><small>Stress</small><b class="num">${esc(h.stress ?? "?")}</b></button>
+    </section>`;
+  const attentionHtml = `<section class="sheet" id="attention" data-tab-panel="home" data-nav>
+      <div class="sheet-inner">
+        ${att.length ? `<p class="kicker">Needs you</p><div class="stack">${att.map((a) => `<article class="card glass opener att lv${a.level}" ${opener("card:" + a.id)}>
+          <div class="row"><h3>${esc(a.name || a.id)} <span class="id">${esc(a.id)}</span></h3>${tags([a.mark === "PROMO" ? "PROMO" : a.mark])}</div><p class="meta">${esc(a.what)}</p></article>`).join("")}</div>`
+        : `<p class="kicker">Needs you</p><p class="meta calm">Nothing is past due, stale or waiting on you.</p>`}
+      </div></section>`;
+  const tiles = `<section class="tiles" data-tab-panel="home" aria-label="The whole picture">
+      <button type="button" class="tile glass" data-tab="debt"><small>Owed on cards and loans</small><b class="num">${money0(owe.plan)}</b><span>${owe.mortgage ? `mortgage ${money0(owe.mortgage)} apart` : "no mortgage in the book"}${owe.unknown ? ` · ${owe.unknown} unknown` : ""}</span></button>
+      <button type="button" class="tile glass" data-tab="debt"><small>Credit used</small><b class="num">${util == null ? "—" : Math.round(util * 100) + "%"}</b><span>${util == null ? "no card limits in the book" : util <= 0.1 ? "excellent (under 10%)" : util <= 0.3 ? "good (under 30%)" : "high: over 30% weighs on the score"}</span></button>
+      <button type="button" class="tile glass" data-tab="worth"><small>Net worth</small><b class="num">${money0(net)}</b><span>${worth.status === "COMPLETE" ? "from the book" : "incomplete" + (worth.missing.length ? ": " + esc(worth.missing.slice(0, 2).join(", ")) : "")}</span></button>
+    </section>`;
+  const stress = `<section class="overview-metrics" aria-label="Stress" data-tab-panel="home">
     <article class="card glass metric">
       <button type="button" class="metric-hit" data-open="metric:stress" data-chart="gauge" data-score="${h.stress ?? ""}">
         ${gauge(h.stress)}
@@ -233,75 +278,53 @@ export function ledgerHtml(d) {
       </button>
       ${sparkHtml(d.history || [])}
       <p class="meta">${(d.history || []).length} points · dashed line = goal 400</p>
-    </article>
-    <article class="card glass metric">
+    </article></section>`;
+  const todayHtml = masthead + `<div data-tab-panel="home" data-today>${safeHtml(d, st)}${comingHtml(st)}</div>` + attentionHtml
+    + `<section data-tab-panel="home">${homeHeroHtml(d)}</section>` + tiles + stress;
+
+  /* ---------------------------------------------------------------- Debt ---------------------------------------------------------------- */
+  const debtRows = (list) => list.slice().sort((a, b) => (order[a.id] ?? 9e3) - (order[b.id] ?? 9e3) || ((b.terms || {}).apr || 0) - ((a.terms || {}).apr || 0))
+    .map((c) => cardRow(c, order[c.id] ? ` <span class="phase">gone ${esc(addMonths(order[c.id]))}</span>` : c.kind === "mortgage" ? ` <span class="phase">own schedule</span>` : (c.marks || []).includes("HOLD") ? ` <span class="phase">hold</span>` : "")).join("");
+  const debtTop = `<section class="sheet" id="owed" data-tab-panel="debt" data-nav><div class="sheet-inner">
+      <p class="kicker">What is owed</p>
+      <h2>${money(owe.plan)} <small class="h-sub">on cards and loans</small></h2>
+      <div class="split">
+        <span><small>Cards</small><b class="num">${money0(owe.cards)}</b></span>
+        <span><small>Loans and plans</small><b class="num">${money0(owe.loans)}</b></span>
+        <span><small>Mortgage (apart)</small><b class="num">${money0(owe.mortgage)}</b></span>
+      </div>
+      ${util != null ? `<div class="util"><div class="row"><small>Credit used on the cards</small><b class="num">${Math.round(util * 100)}% · ${money0(owe.used)} of ${money0(owe.limit)}</b></div>
+        <div class="meter"><i style="width:${Math.min(100, util * 100).toFixed(1)}%;background:${util <= 0.3 ? "#9fe6c2" : ROSE}"></i><em style="left:30%"></em><em style="left:10%"></em></div>
+        <p class="meta">Under 30% helps the credit score; under 10% is best. Each card's own share counts too.</p></div>` : ""}
+      ${owe.unknown ? `<p class="meta">${owe.unknown === 1 ? "1 debt has" : owe.unknown + " debts have"} no balance in the book, so ${owe.unknown === 1 ? "it is" : "they are"} not counted.</p>` : ""}
+    </div></section>`;
+  const revolving = `<section data-tab-panel="debt"><article class="card glass metric">
       <button type="button" class="metric-hit" data-open="metric:revolving">
         <p class="kicker">Revolving${h.revolving_asof ? " · " + esc(h.revolving_asof) : ""}</p>
         <p class="figure num debt">${h.revolving == null ? '<span class="pending">unknown</span>' : money(h.revolving)}</p>
-        ${h.revolving_projected != null ? `<p class="meta">Pending payoff ${money(h.revolving_projected)} is not this total</p>` : ""}
-        ${h.installment != null ? `<p class="meta">Installment ${money(h.installment)} is not in this total</p>` : ""}
+        ${h.revolving_projected != null ? `<p class="meta">A payment of ${money(h.revolving_projected)} is pending and not posted yet.</p>` : ""}
       </button>
-      ${compositionHtml(ordered)}
-    </article>
-  </section>`;
+      ${compositionHtml(by("Cards (detail)").sort((a, b) => (order[a.id] ?? 9e3) - (order[b.id] ?? 9e3)))}
+    </article></section>`;
+  const cardHtml = `<div data-tab-panel="debt" hidden>${sheet("cards", "0.62", false, "In the order the plan pays them", "Cards", debtRows(by("Cards (detail)")))}${sheet("loans", "0.5", false, "Owed", "Loans", debtRows(by("Loans")))}</div>`;
 
-  const attentionHtml = attention.length ? sheet(
-    "attention",
-    "0.45",
-    false,
-    "Needs you / stale",
-    "Attention",
-    attention.map((c) => `<article class="card glass opener ${c.marks.includes("NEED YOU") ? "alert" : "warnb"}" ${opener("card:" + c.id)} ${accountAttrs(c)}>
-      <h3>${esc(c.name)}</h3>
-      <div class="tags">${tags(c.marks)}</div>
-      <p class="meta">${esc((c.lines && c.lines[0]) || c.status || "")}</p>
-    </article>`).join("")
-  ) : "";
+  /* ---------------------------------------------------------------- Worth ---------------------------------------------------------------- */
+  const worthHtml = `<section class="sheet" id="worth" data-tab-panel="worth" hidden data-nav><div class="sheet-inner">
+      <p class="kicker">Net worth</p>
+      <h2>${money(net)} <small class="h-sub">${worth.status === "COMPLETE" ? "from the book" : "incomplete"}</small></h2>
+      ${networthHtml(d)}
+      <div data-from-pillars></div>
+    </div></section>`;
+  const accounts = `<div data-tab-panel="worth" hidden>${filterBarHtml()}${sheet("cash", "-0.95", true, "On hand", "Cash", by("Cash").map((c) => cardRow(c)).join(""))}${sheet("assets", "-0.4", true, "Beyond cash", "Assets", by("Assets beyond cash").map((c) => cardRow(c, c.id == "A14" ? ` <span class="tag hold">HOLD · never sell</span>` : "")).join(""))}</div>`;
 
-  const cardHtml = sheet(
-    "cards",
-    "0.62",
-    false,
-    "Payoff order",
-    "Cards",
-    ordered.map((c) => cardRow(c, ORDER[c.id] ? ` <span class="phase">${esc(ORDER[c.id][1])}</span>` : "")).join("")
-  );
-
-  const cashHtml = sheet(
-    "cash",
-    "-0.95",
-    true,
-    "On hand",
-    "Cash",
-    by("Cash").map((c) => cardRow(c)).join("")
-  );
-
-  const assetHtml = sheet(
-    "assets",
-    "-0.4",
-    true,
-    "Beyond cash",
-    "Assets",
-    by("Assets beyond cash").map((c) => cardRow(c, c.id == "A14" ? ` <span class="tag hold">HOLD · never sell</span>` : "")).join("")
-  );
-
-  const loanHtml = sheet(
-    "loans",
-    "0.5",
-    false,
-    "Owed",
-    "Loans",
-    by("Loans").map((c) => cardRow(c)).join("")
-  );
-
+  /* ---------------------------------------------------------------- Spend and Book ---------------------------------------------------------------- */
   const flow = `<section class="sheet" id="flow" data-tab-panel="flow" hidden data-nav>
     <div class="sheet-inner">
-      <p class="kicker">Flow</p>
-      <h2><button type="button" class="sheet-title" data-open="group:flow">Cash flow</button></h2>
+      <p class="kicker">Spend</p>
+      <h2><button type="button" class="sheet-title" data-open="group:flow">Where the money went</button></h2>
       ${flowChartsHtml(d)}
     </div>
   </section>`;
-
   const book = `<section class="sheet" id="book" data-tab-panel="book" hidden data-shift="1.05" data-nav>
     <div class="sheet-inner">
       <p class="kicker">Written pages</p>
@@ -311,17 +334,18 @@ export function ledgerHtml(d) {
         return `<button type="button" class="fold fold-btn" data-open="section:${i}"><span class="fold-title">${esc(s.title)}</span>${excerpt ? `<span class="fold-excerpt">${esc(excerpt)}</span>` : ""}<span class="go" aria-hidden="true">→</span></button>`;
       }).join("")}
       <button type="button" class="fold fold-btn" data-open="group:log"><span class="fold-title">Recent log</span><span class="go" aria-hidden="true">→</span></button>
+      <article class="card glass share-card" data-share-card>
+        <p class="kicker">Shared with your other pillars</p>
+        <p class="meta">After the book opens, Midas leaves a summary on this device for the hub and the other pillars: safe to spend, the floor, what is owed (cards, loans, mortgage), credit used, the debt-free month, net worth and the payments due. Totals and dates only: no account numbers, no notes, nothing sent anywhere. The hub's Time lists the payments; Hearth and Aegis read net worth.</p>
+        <label class="check"><input type="checkbox" data-share-toggle checked> <span>Share the summary on this device</span></label>
+      </article>
       <button type="button" class="quiet-btn" data-lock>Lock &amp; forget device</button>
     </div>
   </section>`;
 
-  return overview + comingHtml() + metrics
-    + `<div data-tab-panel="accounts" hidden>${filterBarHtml()}${attentionHtml}</div>`
-    + `<div data-tab-panel="debt" hidden>${cardHtml}</div>`
-    + `<div data-tab-panel="accounts" hidden>${cashHtml}${assetHtml}</div>`
-    + `<div data-tab-panel="debt" hidden>${loanHtml}</div>`
-    + planHtml(d)
-    + flow + consoleHtml() + book;
+  return todayHtml
+    + debtTop + revolving + planHtml(d) + cardHtml
+    + flow + worthHtml + accounts + consoleHtml() + book;
 }
 
 let navObserver = null;
@@ -396,7 +420,40 @@ function paintHtml(html, data) {
   window.scrollTo(0, 0);
   const head = document.getElementById("overview-title");
   if (head) head.focus({ preventScroll: true });
-  bindConsole(app, showTab);   // the hub's Payoff Console, folded in (2026-11-25): bills, due soon, the library, #whatif #bills #library
+  bindConsole(app, showTab);   // the hub's Payoff Console, folded in (2026-11-25): bills, the library, #whatif #bills #library
+  bindDevice(app, data);       // v4: what this device knows (bills, payday, the house) joins Today and Worth; the summary goes out
+}
+
+/* ---------------------------------------------------------------- the device side (v4) ---------------------------------------------------------------- */
+function deviceCtx() {
+  let bills = []; try { bills = readHub(window.localStorage).data.bills || []; } catch (e) { bills = []; }
+  return { today: todayIsoLocal(), bills, atlas: readShared("prometheus.atlas.summary"), hearth: readShared("prometheus.hearth.summary"), aegis: readShared("prometheus.aegis.summary") };
+}
+function paintDevice(app, data) {
+  const ctx = deviceCtx(), st = safeToSpend(data, ctx), box = app.querySelector("[data-today]");
+  if (box) box.innerHTML = safeHtml(data, st) + comingHtml(st);
+  const owe = owed(data), w = wayOut(data), worth = positionFromCards(data);
+  const from = app.querySelector("[data-from-pillars]");
+  if (from) {
+    const hs = ctx.hearth, net = worth.assets != null && worth.liabilities != null ? worth.assets - worth.liabilities : null;
+    const rows = [];
+    if (hs && hs.contentsValue > 0) rows.push(`<li><span>Home contents <small>Hearth: ${esc(hs.items ?? 0)} items in ${esc(hs.rooms ?? 0)} rooms</small></span><b class="num">${money(hs.contentsValue)}</b></li>`);
+    if (ctx.aegis && ctx.aegis.contentsCoverage > 0) rows.push(`<li><span>Contents insured for <small>Aegis${ctx.aegis.renewal ? ", renews " + esc(ctx.aegis.renewal) : ""}</small></span><b class="num">${money(ctx.aegis.contentsCoverage)}</b></li>`);
+    from.innerHTML = `<article class="card glass from-pillars"><p class="kicker">What the other pillars know</p>
+      ${rows.length ? `<ul class="pillar-rows">${rows.join("")}</ul>${hs && hs.contentsValue > 0 && net != null ? `<p class="meta">Net worth with the home's contents: <b class="num">${money(net + hs.contentsValue)}</b>. The book leaves contents out (they sell for far less than they cost); this line is for insurance and the full picture.</p>` : ""}`
+        : `<p class="meta">Nothing yet. As Hearth records what is in each room (appliances, furniture, their value), the total shows here beside net worth.</p>`}
+    </article>`;
+  }
+  publish(summary({ book: data, safe: st, owe, way: w, worth }));
+  const tog = app.querySelector("[data-share-toggle]");
+  if (tog && !tog.dataset.bound) { tog.dataset.bound = "1"; tog.checked = shareOn(); tog.addEventListener("change", () => { setShare(tog.checked); if (tog.checked) paintDevice(app, data); }); }
+}
+function bindDevice(app, data) {
+  paintDevice(app, data);
+  const again = () => paintDevice(app, data);
+  window.addEventListener("midas:bills", again);
+  window.addEventListener("storage", (e) => { if (!e.key || /^prom(etheus)?\.(deck\.money|atlas\.summary|hearth\.summary|aegis\.summary)$/.test(e.key)) again(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) again(); });
 }
 
 export function presentBook(data, options = {}) {

@@ -282,7 +282,7 @@ export function positionFromCards(book) {
   };
 }
 
-function networthBlock(book) {
+export function networthHtml(book) {
   const snaps = ((book && book.networth && book.networth.snapshots) || []).filter((s) => finite(s.net) != null);
   const position = positionFromCards(book);
   if (!snaps.length && position.assets == null && position.liabilities == null) return "";
@@ -334,7 +334,7 @@ export function flowChartsHtml(book) {
       ${flowSvg(rows)}
       <ul class="mini">${rows.map((row) => `<li data-flow-month="${escAttr(row.id)}" data-flow-income="${escAttr(row.income)}" data-flow-spend="${escAttr(row.spend)}" data-flow-net="${row.net == null ? "" : escAttr(row.net)}"><span>${esc(row.label)}</span> <b class="num">${row.net == null ? "—" : esc(money(row.net))}</b></li>`).join("")}</ul>
     </article>` : `<article class="card glass metric"><p class="kicker">Income vs spend</p><p class="meta">Cash flow shows up when the book is rebuilt with a Plaid rollup or a Cash flow page.</p></article>`;
-  return `<div class="flow-stack">${flow}${categoryBlock(book)}${utilitySvg(book)}${networthBlock(book)}</div>`;
+  return `<div class="flow-stack">${flow}${categoryBlock(book)}${utilitySvg(book)}</div>`;
 }
 
 function placeTip(chart, tip, clientX) {

@@ -2,12 +2,12 @@
    the goal of that was into Midas"). The console had four rooms: the payoff plan, what-if, bills and subscriptions, and the library.
    In Midas the plan is the book's own (Plan tab) and what-if sits under it (wayout.js); this file adds the rest:
    - Flow: the recurring charges (bills.js), kept in the hub's device store so the hub's Time still shows each due date;
-   - Home: what is due in the next two weeks;
+   - Today: the recurring charges join the due list and safe to spend (today.js);
    - Plan: the typed plan from the old console, if this device still has one (it stays in Time until removed);
    - Debt: the library (what the minimum really costs on each issuer's formula, the 25 issuers, promo traps, hardship programs, and the
      12 worked cases re-run on Midas's own engine, figure by figure);
    - #plan #whatif #bills #library (and every tab name) open that room, so the hub's old links land in the right place. */
-import { addDays, burn, chargeDates, cleanBill, CYCLES, cycleText, diffDays, isDay, nextDue, readHub, todayIso, upcoming, writeHub } from "./bills.js";
+import { burn, chargeDates, cleanBill, CYCLES, cycleText, diffDays, isDay, nextDue, readHub, todayIso, writeHub } from "./bills.js";
 import { deferredExample, minimumTrap } from "./library.js";
 import { addMonths, simulate } from "./plan.js";
 
@@ -22,9 +22,8 @@ const DATA = {};
 const data = (name) => DATA[name] || (DATA[name] = fetch(`./data/${name}.json`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(name + " " + r.status)))).catch((e) => { delete DATA[name]; throw e; }));
 
 /* ------------------------------------------------------------------ the shells ledgerHtml places ------------------------------------------------------------------ */
-export const comingHtml = () => `<section class="coming glass" id="coming" data-tab-panel="home" aria-label="Due soon" hidden data-coming></section>`;
 export function consoleHtml() {
-  return `<section class="sheet typed" id="typed" data-tab-panel="plan" hidden data-typed></section>
+  return `<section class="sheet typed" id="typed" data-tab-panel="debt" hidden data-typed></section>
   <section class="sheet" id="bills" data-tab-panel="flow" hidden data-nav>
     <div class="sheet-inner">
       <p class="kicker">Bills and subscriptions</p>
@@ -98,19 +97,6 @@ function billDialog(root, id) {
   if (del) del.addEventListener("click", () => { const cur = readHub(ls); if (!cur.writable) return; cur.data.bills = cur.data.bills.filter((x) => x.id !== b.id); writeHub(ls, cur.data); dlg.close(); refresh(root); });
   if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
   const first = dlg.querySelector("input[name=name]"); if (first && !b) first.focus();
-}
-
-/* ------------------------------------------------------------------ home: due soon ------------------------------------------------------------------ */
-function comingView(root) {
-  const el = root.querySelector("[data-coming]"); if (!el) return;
-  const ls = store(), bills = ls ? readHub(ls).data.bills : [], t = todayIso(), list = upcoming(bills, t, 14);
-  if (!bills.length) { el.hidden = true; el.dataset.empty = "1"; el.innerHTML = ""; return; }
-  delete el.dataset.empty; if (document.querySelector('[data-tab="home"][aria-current="page"]')) el.hidden = false;
-  const sum = list.reduce((s, r) => s + (Number(r.bill.amount) || 0), 0);
-  el.innerHTML = `<p class="kicker">Due in the next two weeks</p>
-    <p class="coming-sum"><b class="num">${money(sum)}</b> <span class="meta">${list.length} charge${list.length === 1 ? "" : "s"}</span></p>
-    ${list.length ? `<ul class="coming-list">${list.slice(0, 5).map(({ bill, date }) => `<li><span>${esc(bill.name)}${bill.autopay ? ' <small class="tag ok">autopay</small>' : ""}</span><span class="num">${money(bill.amount)}</span><small>${day(date)} · ${rel(date, t)}</small></li>`).join("")}</ul>` : `<p class="meta">Nothing due before ${day(addDays(t, 14))}.</p>`}
-    <button type="button" class="textbtn" data-tab="flow" data-jump="bills">All recurring charges →</button>`;
 }
 
 /* ------------------------------------------------------------------ plan: the old console's typed plan ------------------------------------------------------------------ */
@@ -235,15 +221,15 @@ async function drawLib1(root) {
 }
 
 /* ------------------------------------------------------------------ wiring and rooms ------------------------------------------------------------------ */
-const ROOMS = { home: ["home"], flow: ["flow"], accounts: ["accounts"], plan: ["plan"], debt: ["debt"], book: ["book"],
-  whatif: ["plan", "whatif"], bills: ["flow", "bills"], library: ["debt", "library"], payoff: ["plan"], money: ["plan"] };
+const ROOMS = { home: ["home"], today: ["home"], flow: ["flow"], spend: ["flow"], accounts: ["worth"], worth: ["worth"], plan: ["debt", "plan"], debt: ["debt"], book: ["book"],
+  whatif: ["debt", "whatif"], bills: ["flow", "bills"], library: ["debt", "library"], payoff: ["debt", "plan"], money: ["debt", "plan"] };
 let shown = "home", rootEl = null;
-function refresh(root) { billsView(root); comingView(root); typedView(root); }
+function refresh(root) { billsView(root); typedView(root); try { window.dispatchEvent(new CustomEvent("midas:bills")); } catch (e) { /* old browser */ } }   // Today repaints its due list and safe-to-spend
 
 /** Called after every tab switch (ledger.js showTab): the console's shells follow their tab, and the library loads the first time Debt opens. */
 export function onTab(name) {
   shown = name; if (!rootEl) return;
-  for (const el of rootEl.querySelectorAll("[data-coming], [data-typed]")) if (el.dataset.empty === "1") el.hidden = true;
+  for (const el of rootEl.querySelectorAll("[data-typed]")) if (el.dataset.empty === "1") el.hidden = true;
   if (name === "debt" && !libDrawn) drawLib(rootEl);
 }
 /** Opens the room a hash names (#whatif, #bills, #library or any tab). Returns true when it did. */

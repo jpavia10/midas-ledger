@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { flowChartsHtml, positionFromCards } from "../src/charts.js";
+import { flowChartsHtml, networthHtml, positionFromCards } from "../src/charts.js";
 import { ledgerHtml } from "../src/ledger.js";
 
 function book() {
@@ -60,7 +60,7 @@ test("home uses spendable available and lists holds", () => {
   assert.match(html, /\$420\.50/);
   assert.match(html, /ACH HOLD Valon Payment/);
   assert.match(html, /data-tab-panel="flow"/);
-  assert.match(html, /data-tab-panel="accounts"/);
+  assert.match(html, /data-tab-panel="worth"/);
   assert.match(html, /data-tab-panel="debt"/);
   assert.match(html, /data-tab-panel="book"/);
   assert.doesNotMatch(html, /data-banked="1804"/);
@@ -78,8 +78,10 @@ test("flow charts read structured months, categories, utilities, and net worth",
   assert.match(html, /Burn \$40\.00/);
   assert.match(html, /SoCal Gas/);
   assert.match(html, /data-util-cum="11"/);
-  assert.match(html, /data-nw="2026-08-01"/);
-  assert.match(html, /data-net="600"/);
+  assert.doesNotMatch(html, /data-nw=/);                       // v4: net worth lives on Worth, not Flow
+  const worthHtml = networthHtml(book());
+  assert.match(worthHtml, /data-nw="2026-08-01"/);
+  assert.match(worthHtml, /data-net="600"/);
   const position = positionFromCards(book());
   assert.equal(position.assets, 420.5);
   assert.equal(position.liabilities, 900);
@@ -97,7 +99,7 @@ test("flow charts read structured months, categories, utilities, and net worth",
   assert.equal(gross.liabilities, 290);
   assert.equal(gross.status, "INCOMPLETE");
   assert.ok(gross.missing.includes("ESOP"));
-  const incomplete = flowChartsHtml({
+  const incomplete = networthHtml({
     ...book(),
     headline: { ...book().headline, revolving_projected: 400 },
     cards: book().cards.concat([{ section: "Assets beyond cash", id: "A7e", name: "ESOP", balance: null, unknown: true, marks: [] }]),

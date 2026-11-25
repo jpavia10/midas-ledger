@@ -33,13 +33,12 @@ function fixture(banked = 4200) {
 
 test("ledger html keeps the book and escapes text", () => {
   const html = ledgerHtml(fixture());
-  const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="cash"'));
-  const attention = html.slice(html.indexOf('id="attention"'), html.indexOf('id="cards"'));
-  assert.ok(cards.indexOf("Alpha") < cards.indexOf("Beta"));
-  assert.ok(cards.indexOf("Beta") < cards.indexOf("Hold me"));
-  assert.match(cards, /Phase 1/);
-  assert.match(cards, /Phase 2/);
-  assert.match(cards, /0% autopay|Hold/);
+  const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="loans"'));
+  const attention = html.slice(html.indexOf('id="attention"'), html.indexOf("</section>", html.indexOf('id="attention"')));
+  /* v4: the cards run in the plan's own order (no hard-coded phases); with no terms in the book they keep the book's order */
+  for (const n of ["Alpha", "Beta", "Hold me"]) assert.ok(cards.includes(n), n);
+  assert.doesNotMatch(cards, /Phase \d/);
+  assert.match(cards, /hold/);
   assert.match(html, /Beta &lt;card&gt;/);
   assert.doesNotMatch(html, /<card>/);
   assert.match(html, /see note/);

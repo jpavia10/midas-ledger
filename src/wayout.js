@@ -8,7 +8,7 @@ const WHY = { avalanche: "highest interest first: the least interest paid", snow
   custom: "the order in your book", minimums: "what happens if nothing extra goes in" };
 
 /* the starting line: the first total owed this device saw, so progress is measured from a real day */
-const BASE_KEY = "midasDesk:baseline";
+const BASE_KEY = "midasDesk:baseline.plan";   // v4: the starting line counts the plan's debts only (cards and loans), like the bar it feeds
 export function baseline(total) {
   let b = null;
   try { b = JSON.parse(localStorage.getItem(BASE_KEY) || "null"); } catch (_) { b = null; }
@@ -19,7 +19,7 @@ export function baseline(total) {
 
 export function homeHeroHtml(book) {
   const w = wayOut(book), plan = w.methods[w.chosen];
-  const owed = w.total != null ? w.total : w.scheduleTotal;
+  const owed = w.scheduleTotal;                       // the plan's own debts: cards and loans (the mortgage has its own schedule)
   const base = baseline(owed || 0);
   const paid = base && owed != null ? Math.max(0, base.total - owed) : 0, pct = base && base.total > 0 ? (paid / base.total) * 100 : 0;
   const dated = plan && plan.ok && w.known.length && !w.missing.length;
@@ -27,7 +27,7 @@ export function homeHeroHtml(book) {
     : dated ? `<p class="wo-kicker">Debt-free by</p><p class="wo-big">${addMonths(plan.months.length)}</p>`
     : `<p class="wo-kicker">Owed today</p><p class="wo-big num">${w.total == null ? '<span class="pending">unknown</span>' : money(w.total, 0)}</p>`;
   const sub = !w.debts.length ? "" : dated
-    ? `${plan.months.length} months at ${money(w.budget, 0)} a month · ${money(plan.total_interest, 0)} of interest still to pay · ${money(w.scheduleTotal, 0)} in this plan${w.mortgages.length ? " · mortgage principal is separate" : ""}`
+    ? `${plan.months.length} months at ${money(w.budget, 0)} a month · ${money(plan.total_interest, 0)} of interest still to pay · ${money(w.scheduleTotal, 0)} on cards and loans${w.mortgages.length ? " (the mortgage runs on its own schedule)" : ""}`
     : w.missing.length ? `${w.missing.length} of ${w.debts.length} debts still need their APR and minimum in the book before Midas can date the way out.` : "";
   return `<section class="wayout glass lit" aria-label="The way out">
     <p class="kicker">The way out</p>
@@ -37,7 +37,7 @@ export function homeHeroHtml(book) {
       <div class="meter"><i style="width:${Math.min(100, pct).toFixed(1)}%"></i></div>
       <p class="meta">${paid > 0 ? `Paid down <b>${money(paid, 0)}</b> since ${esc(base.at)} · ${pct.toFixed(1)} % of the way` : `Starting line: ${money(base?.total ?? w.total, 0)} on ${esc(base?.at || "today")}. Every payment moves this bar.`}</p>
     </div>` : ""}
-    ${w.debts.length ? `<button type="button" class="btn wo-go" data-tab="plan">See the plan <span aria-hidden="true">→</span></button>` : ""}
+    ${w.debts.length ? `<button type="button" class="btn wo-go" data-tab="debt" data-jump="plan">See the plan <span aria-hidden="true">→</span></button>` : ""}
   </section>`;
 }
 
@@ -114,7 +114,7 @@ export function planHtml(book, budget, method, wf = 0) {
   const faster = (() => { if (!sim || !sim.ok) return ""; const w2 = wayOut(book, w.budget + 100), s2 = w2.methods[chosen];
     if (!s2 || !s2.ok) return ""; const dm = sim.months.length - s2.months.length, di = sim.total_interest - s2.total_interest;
     return dm > 0 ? `<p class="wo-tip">${money(100, 0)} more a month: debt-free <b>${dm} month${dm === 1 ? "" : "s"} sooner</b> and <b>${money(di, 0)}</b> less interest.</p>` : ""; })();
-  return `<section class="sheet plan" id="plan" data-tab-panel="plan" hidden data-nav>
+  return `<section class="sheet plan" id="plan" data-tab-panel="debt" hidden data-nav>
     <div class="sheet-inner">
       <p class="kicker">The plan</p>
       <h2>Every debt, in the order it goes</h2>

@@ -4,6 +4,9 @@
    lowest balance, custom = the listed order); a paid-off debt's minimum joins the rest from the next month. */
 
 const r2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+/* one month's interest in whole cents, half up, with the APR in thousandths of a percent: the same rule as the hub's engine, which
+   reproduces all 12 worked cases to the cent (2026-11-25; float rounding drifted a cent on the 60-month case) */
+export const monthInterest = (bal, apr) => { const c = Math.round(bal * 100), a = Math.round((+apr || 0) * 1000); return Math.floor((c * a + 600000) / 1200000) / 100; };
 
 /** debts: [{name, balance, apr, min}], budget: dollars a month for all debts together. Returns the month-by-month schedule. */
 export function simulate(debts, budget, method = "avalanche", order = [], maxMonths = 600) {
@@ -20,7 +23,7 @@ export function simulate(debts, budget, method = "avalanche", order = [], maxMon
   const months = [], payoff = {}; let totalInterest = 0;
   for (let m = 1; m <= maxMonths && live.some((d) => d.balance > 0); m++) {
     const row = { m, interest: {}, paid: {}, balance: {} };
-    for (const d of live) if (d.balance > 0) { const i = r2(d.balance * d.apr / 12 / 100); d.balance = r2(d.balance + i); row.interest[d.id] = i; totalInterest = r2(totalInterest + i); }
+    for (const d of live) if (d.balance > 0) { const i = monthInterest(d.balance, d.apr); d.balance = r2(d.balance + i); row.interest[d.id] = i; totalInterest = r2(totalInterest + i); }
     let left = budget;
     for (const d of live) if (d.balance > 0) { const p = Math.min(d.min, d.balance); d.balance = r2(d.balance - p); row.paid[d.id] = r2(p); left = r2(left - p); }
     // the rest to the target, then the next target if the first is paid off this month
@@ -31,6 +34,18 @@ export function simulate(debts, budget, method = "avalanche", order = [], maxMon
   }
   const done = live.every((d) => d.balance <= 0);
   return { ok: done, reason: done ? "" : "does not finish in 50 years at this budget", months, payoff_month: payoff, total_interest: totalInterest, minSum, budget };
+}
+
+/** A one-time windfall applied today, before the next month runs: it goes to the debts in the method's own order (avalanche: the highest
+    APR first; snowball: the smallest balance; custom: the listed order), each up to its balance. Returns the debts after it and where it
+    landed ({ id: dollars }). The Plan's "what if" (2026-11-25, folded in from the hub's Payoff Console). */
+export function windfall(debts, amount, method = "avalanche", order = []) {
+  const live = debts.map((d, i) => ({ ...d, id: d.id ?? d.name, balance: r2(+d.balance || 0), apr: +d.apr || 0, i }));
+  const rank = (d) => (method === "snowball" ? [d.balance, -d.apr, d.i] : method === "custom" ? [order.indexOf(d.id) < 0 ? 999 : order.indexOf(d.id), d.i, 0] : [-d.apr, d.balance, d.i]);
+  const cmp = (a, b) => { const x = rank(a), y = rank(b); for (let k = 0; k < x.length; k++) if (x[k] !== y[k]) return x[k] - y[k]; return 0; };
+  let left = r2(Math.max(0, +amount || 0)); const lands = {};
+  for (const d of live.filter((x) => x.balance > 0).sort(cmp)) { if (left <= 0) break; const p = Math.min(left, d.balance); d.balance = r2(d.balance - p); lands[d.id] = r2(p); left = r2(left - p); }
+  return { debts: live.map(({ i, ...d }) => d), lands, left };
 }
 
 function numOrNull(value) {

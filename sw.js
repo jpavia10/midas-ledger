@@ -1,11 +1,14 @@
 /* Midas Ledger. Network first. Same-origin shell only. No secrets. */
-var CACHE = "midas-ledger-v7-kit";
+var CACHE = "midas-ledger-v8-console";
 var SHELL = [
   "./",
   "./index.html",
   "./kit/prometheus.css",
   "./styles.css",
   "./midas.js",
+  "./data/issuers.json",
+  "./data/offers.json",
+  "./data/payoff-cases.json",
   "./manifest.webmanifest",
   "./manifest.json",
   "./icon.png",

@@ -1,5 +1,5 @@
 /* Midas v2 screens (Claude, 2026-11-05): the Home hero that leads with the way out, and the Plan tab. */
-import { addMonths, wayOut } from "./plan.js";
+import { addMonths, simulate, wayOut, windfall } from "./plan.js";
 
 const money = (n, d = 2) => (n == null || isNaN(n) ? "—" : (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }));
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -68,7 +68,43 @@ function mortgageBlock(w) {
   }).join("");
 }
 
-export function planHtml(book, budget, method) {
+/* What if (2026-11-25, folded in from the hub's Payoff Console): a one-time windfall against the book's debts, today, in the chosen
+   method's order. Extra every month is the slider above. */
+export function whatIfOut(book, budget, method, amount) {
+  const w = wayOut(book, budget), m = method && w.methods[method] ? method : w.chosen, sim = w.methods[m];
+  const amt = Math.max(0, +amount || 0);
+  if (!sim || !sim.ok) return `<p class="meta">The plan needs a budget that covers the minimums first.</p>`;
+  if (!(amt > 0)) return `<p class="meta">Type an amount, or tap one above: the debt-free month answers at once.</p>`;
+  const order = (book.plan && book.plan.order) || [], how = m === "minimums" ? "avalanche" : m;
+  const wf = windfall(w.known, amt, how, order), mins = wf.debts.filter((d) => d.balance > 0).reduce((a, d) => a + (+d.min || 0), 0);
+  const after = simulate(wf.debts, m === "minimums" ? mins : w.budget, how, order);
+  if (!after.ok) return `<p class="meta">${esc(after.reason)}</p>`;
+  const sooner = sim.months.length - after.months.length, saved = sim.total_interest - after.total_interest;
+  const names = Object.fromEntries(w.known.map((d) => [d.id, d.name]));
+  const lands = Object.entries(wf.lands);
+  return `<div class="vs"><div><small>As it stands</small><b class="num">${addMonths(sim.months.length)}</b><small>${sim.months.length} months</small></div>
+      <span class="vs-arrow" aria-hidden="true">→</span>
+      <div class="then"><small>With ${money(amt, 0)} today</small><b class="num">${after.months.length ? addMonths(after.months.length) : "Debt-free now"}</b><small>${after.months.length} months</small></div></div>
+    <div class="stats3"><div><small>Sooner by</small><b class="num">${Math.max(0, sooner)} month${sooner === 1 ? "" : "s"}</b></div>
+      <div><small>Interest saved</small><b class="num">${money(Math.max(0, saved), 0)}</b></div>
+      <div><small>Interest left</small><b class="num">${money(after.total_interest, 0)}</b></div></div>
+    <p class="kicker wf-lands-k">Where it lands · ${esc(NAMES[m] || m)}</p>
+    <ul class="wf-lands">${lands.map(([id, v]) => `<li><span>${esc(names[id] || id)}</span><b class="num">${money(v, 0)}</b>${w.known.find((d) => d.id === id && Math.abs(d.balance - v) < 0.005) ? `<small>paid off</small>` : ""}</li>`).join("")}</ul>
+    ${wf.left > 0.004 ? `<p class="meta">${money(wf.left, 0)} is left over: every debt in this plan is paid.</p>` : ""}`;
+}
+
+function whatIfHtml(book, budget, method, wf) {
+  return `<section class="whatif glass" id="whatif" aria-label="What if">
+    <p class="kicker">What if</p>
+    <h3>A windfall, today</h3>
+    <label class="wf-in"><span>A one-time amount against the plan ($)</span>
+      <input type="number" min="0" step="50" inputmode="decimal" placeholder="0" value="${wf > 0 ? wf : ""}" data-wf aria-label="Windfall amount in dollars"></label>
+    <div class="wf-chips" role="group" aria-label="Quick amounts">${[500, 1000, 2500, 5000].map((v) => `<button type="button" class="chip" data-wf-chip="${v}">${money(v, 0)}</button>`).join("")}</div>
+    <div class="wf-out" data-wf-out aria-live="polite">${whatIfOut(book, budget, method, wf)}</div>
+  </section>`;
+}
+
+export function planHtml(book, budget, method, wf = 0) {
   const w = wayOut(book, budget), chosen = method && w.methods[method] ? method : w.chosen, sim = w.methods[chosen];
   const rows = w.debts.filter((d) => !d.mortgage).map((d) => {
     const m = sim && sim.payoff_month ? sim.payoff_month[d.id] : null;
@@ -93,6 +129,7 @@ export function planHtml(book, budget, method) {
         <div class="tl-bar"><i style="width:${m ? Math.max(3, (m / span) * 100).toFixed(1) : 0}%"></i></div>
         <p class="meta">${d.balance == null ? "unknown" : money(d.balance)}${d.apr != null ? ` · purchase APR ${d.apr}%` : ""}${d.min != null ? ` · minimum ${money(d.min, 0)}` : ""}${d.promo_end ? ` · promo ${d.promo_apr ?? 0}% through ${esc(d.promo_end)}, not the due day` : ""}${d.due_day != null ? ` · due day ${d.due_day}` : ""}${d.promo_end || d.deferred_interest ? " · Deferred interest can apply if the balance is unpaid by the promo end." : ""}${d.missing ? " · add `- terms: APR … · min … · as of …` under this card in the book" : ""}</p>
       </li>`).join("")}</ol>
+      ${sim && sim.ok ? whatIfHtml(book, w.budget, chosen, wf) : ""}
       ${mortgageBlock(w)}
       <p class="meta">Interest each month = balance × APR ÷ 12, rounded to the cent. A promo rate is not the purchase APR, and the promo end is not the payment due date. Deferred interest can apply if a promo balance is unpaid at the promo end. Promo rates are shown, not modelled as the payoff. The plan uses only what the book says.</p>`}
     </div>
@@ -100,10 +137,10 @@ export function planHtml(book, budget, method) {
 }
 
 export function bindPlan(root, book) {
-  let budget = null, method = null;
+  let budget = null, method = null, wf = 0;
   const repaint = () => {
     const old = root.querySelector("#plan"); if (!old) return;
-    const wasHidden = old.hidden; const tmp = document.createElement("div"); tmp.innerHTML = planHtml(book, budget, method);
+    const wasHidden = old.hidden; const tmp = document.createElement("div"); tmp.innerHTML = planHtml(book, budget, method, wf);
     const fresh = tmp.firstElementChild; fresh.hidden = wasHidden; old.replaceWith(fresh); wire();
   };
   const wire = () => {
@@ -111,6 +148,12 @@ export function bindPlan(root, book) {
     if (r) r.addEventListener("change", () => { budget = +r.value; repaint(); });
     if (r) r.addEventListener("input", () => { const o = root.querySelector("[data-budget-out]"); if (o) o.textContent = money(+r.value, 0); });
     root.querySelectorAll("[data-method]").forEach((b) => b.addEventListener("click", () => { method = b.getAttribute("data-method"); repaint(); }));
+    const inp = root.querySelector("[data-wf]"), out = root.querySelector("[data-wf-out]");
+    const calc = () => { wf = Math.max(0, +inp.value || 0); out.innerHTML = whatIfOut(book, budget, method, wf); };
+    if (inp && out) {
+      inp.addEventListener("input", calc);
+      root.querySelectorAll("[data-wf-chip]").forEach((b) => b.addEventListener("click", () => { inp.value = b.getAttribute("data-wf-chip"); calc(); }));
+    }
   };
   wire();
 }

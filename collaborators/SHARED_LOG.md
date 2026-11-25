@@ -2,6 +2,10 @@
 
 Newest first. Every contributor (Claude and every AI) adds a dated 2-3 line entry after a change.
 
+### [2026-11-25] Claude: the hub's Payoff Console now lives in Midas (owner: "Replace money at the bottom with midas and just incorporate whatever the goal of that was into Midas")
+- Plan gains **What if** (a windfall today, in the chosen method's order: the new date, months sooner, interest saved, where it lands); Flow gains **Recurring charges** with the subscription audit; Home shows what is due in the next two weeks; Debt gains **the library** (minimum trap on each issuer's formula, 25 issuers, promo traps, 23 hardship programs, the 12 worked cases); `#whatif #bills #library` open each room. Bills stay in the hub's device slice `prom.deck.money` (the hub's Time keeps every due date); not in the book, the vault is untouched.
+- plan.js interest is now whole cents half up (the hub's rule): all 12 worked cases match to the cent (case 2 was a cent off over 60 months). New `src/bills.js`, `src/library.js`, `src/console.js`, `data/*.json` (copied from the hub's `deck/data/`), `test/console.test.mjs`; `npm run check` 29 + 51 pass.
+
 ### [2026-11-23] Gemini's promo statement lines scored; next data task (Claude)
 - MID-GEM-14 (40 promo lines from issuers' statements) scored 10 (row 15) and closed; the lines are test material only, the parser stays protected.
 - New: MID-GEM-15, 30 minimum-payment, due-date and late-fee lines from issuers' sample statements (data only).

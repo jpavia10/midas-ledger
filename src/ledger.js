@@ -2,6 +2,7 @@
    localStorage "midasKey" is { salt, k } where k is the raw AES key (base64).
    A new salt asks for the password again. The password is never stored. */
 
+import { bindConsole, comingHtml, consoleHtml, onTab } from "./console.js";
 import { bindPlan, homeHeroHtml, planHtml } from "./wayout.js";
 import { bindCharts, compositionHtml, CYAN, flowChartsHtml, ROSE, sparkHtml, spendableOf } from "./charts.js";
 import { configureDesk, normalizeEntry, onDeskChange, readDesk } from "./desk.js";
@@ -163,6 +164,7 @@ export function showTab(name) {
   });
   const scroller = document.scrollingElement;
   if (scroller) scroller.scrollTop = 0;
+  onTab(name);
 }
 
 function bindTabs() {
@@ -313,13 +315,13 @@ export function ledgerHtml(d) {
     </div>
   </section>`;
 
-  return overview + metrics
+  return overview + comingHtml() + metrics
     + `<div data-tab-panel="accounts" hidden>${filterBarHtml()}${attentionHtml}</div>`
     + `<div data-tab-panel="debt" hidden>${cardHtml}</div>`
     + `<div data-tab-panel="accounts" hidden>${cashHtml}${assetHtml}</div>`
     + `<div data-tab-panel="debt" hidden>${loanHtml}</div>`
     + planHtml(d)
-    + flow + book;
+    + flow + consoleHtml() + book;
 }
 
 let navObserver = null;
@@ -394,6 +396,7 @@ function paintHtml(html, data) {
   window.scrollTo(0, 0);
   const head = document.getElementById("overview-title");
   if (head) head.focus({ preventScroll: true });
+  bindConsole(app, showTab);   // the hub's Payoff Console, folded in (2026-11-25): bills, due soon, the library, #whatif #bills #library
 }
 
 export function presentBook(data, options = {}) {

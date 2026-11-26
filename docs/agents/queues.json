@@ -29,7 +29,7 @@
      ],
      "deliver": {
       "file": "midas_gemini_parser-trial_{YYYYMMDD-HHMM}.json",
-      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/19qbU6WlR_6xCWIN8BoQFw4lCujSKzV7d)",
       "shape": "JSON array of 30 objects in test/parser_cases.json's format plus kind, predict, why, source_url, quote"
      },
      "count": 30,
@@ -630,7 +630,7 @@
      ],
      "deliver": {
       "file": "midas_gemini_terms-corpus_{YYYYMMDD-HHMM}.json",
-      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/19qbU6WlR_6xCWIN8BoQFw4lCujSKzV7d)",
       "shape": "JSON array, one object per row, exactly the fields below"
      },
      "count": 60,
@@ -711,7 +711,7 @@
      ],
      "deliver": {
       "file": "midas_gemini_statement-lines_{YYYYMMDD-HHMM}.json",
-      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/19qbU6WlR_6xCWIN8BoQFw4lCujSKzV7d)",
       "shape": "JSON array, one object per row, exactly the fields below"
      },
      "count": 40,
@@ -787,7 +787,7 @@
      ],
      "deliver": {
       "file": "midas_gemini_payment-lines_{YYYYMMDD-HHMM}.json",
-      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/19qbU6WlR_6xCWIN8BoQFw4lCujSKzV7d)",
       "shape": "JSON array, one object per row, exactly the fields below"
      },
      "count": 30,
@@ -863,7 +863,7 @@
      ],
      "deliver": {
       "file": "midas_gemini_rate-tables-2026-2027_{YYYYMMDD-HHMM}.json",
-      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/19qbU6WlR_6xCWIN8BoQFw4lCujSKzV7d)",
       "shape": "JSON array, one object per row, exactly the fields below"
      },
      "count": 0,
@@ -1211,7 +1211,7 @@
      ],
      "deliver": {
       "file": "midas_muse_terms-check_{YYYYMMDD-HHMM}.md",
-      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/1q09aDb__i_eY6kUiETakIsyZ6XEv3stD)",
+      "folder": "Prometheus Hub/Pillars/Midas Ledger/incoming (AI drop files)/ (https://drive.google.com/drive/folders/19qbU6WlR_6xCWIN8BoQFw4lCujSKzV7d)",
       "shape": "markdown table: n | Gemini says | what I found | URL | agree/differ"
      },
      "fields": [
